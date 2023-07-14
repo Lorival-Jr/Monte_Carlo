@@ -1,1 +1,3 @@
-# computacionais_intensivos_I
+# Trabalho - Métodos Computacionais Intensivos
+
+## Sobre o Projeto
