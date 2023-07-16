@@ -1,0 +1,24 @@
+---
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Lindley Geométrica (LG)
+
+**FDP**
+
+$$f(x/ \theta, \rho) = \frac{\theta^2}{\theta + 1}(1 - \rho)(1 + x)e^{-\theta x} \left [ 1 - \rho \left ( 1 + \frac{\theta x}{\theta + 1} \right )e^{-\theta x} \right ]^{-2}$$
+
+Restrições: $\theta > 0$ e $0 < \rho < 1$
+
+**Acumulada**
+
+$$F(x/\theta, \rho) = \frac{1 - \left (1+ \frac{\theta x}{\theta + 1} \right )e^{-\theta x}}{1 - \rho \left (1+ \frac{\theta x}{\theta + 1} \right )e^{-\theta x}}$$
+
+**Quantil**
+
+$$Q(u)= -1 -\frac{1}{\theta}- \left[ W_{-1} \left(\frac{(u-1)(\theta +1)e^{-\theta-1}}{1 - \rho u} \right) \right]\theta^{-1}$$ 
