@@ -70,3 +70,26 @@ my.qexp.numerical   <-      function(q, lambda) # Função quantil
 
 my.qexp.numerical(0.9, 2)
 my.qexp.numerical(c(0.9, 0.1), 2)
+
+
+
+log_lindley_geometrica <- function(x, n, par) # par[1] será theta, par[2] é o p
+{
+  2*n*log(par[1]) + n*log(1-par[2]) + sum(log(1+x)) + 
+    sum(log(exp(-theta[1]*x))) - n*log(par[1] + 1) -
+    2*sum(log(1-theta[2]*(1+(theta[1]*x))))
+  
+  
+  f1 <- 2*n*log(par[1])
+  f2 <- n*log(1-theta[2])
+  f3 <- sum(log(1+x))
+  f4 <- sum(log(exp(-theta[1]*x)))
+  f5 <- n*log(theta[1]+1)
+  f6 <- 2*sum(log(1-theta[2]*(1+theta[1]*x/(theta[1]+1))*exp(-x*par[1])))
+  
+  ll <- f1 + f2 + f3 + f4 - f5 - f6
+  return(ll)
+  
+}
+
+
