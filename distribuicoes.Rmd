@@ -22,3 +22,6 @@ $$F(x/\theta, \rho) = \frac{1 - \left (1+ \frac{\theta x}{\theta + 1} \right )e^
 **Quantil**
 
 $$Q(u)= -1 -\frac{1}{\theta}- \left[ W_{-1} \left(\frac{(u-1)(\theta +1)e^{-\theta-1}}{1 - \rho u} \right) \right]\theta^{-1}$$ 
+**Log-like**
+
+$$n[2\log(\theta) - \log(\theta +1)] + nlog(1-\rho) + \sum\log(1+x_i)-\theta \sum x_i -2\sum\log \left[ 1 - \rho \left ( 1 + \frac{\theta x_i}{\theta + 1} \right) e^{-\theta x_i} \right]$$
