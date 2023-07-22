@@ -154,3 +154,64 @@ amostra <- rlingley_geom(10000, 5, 0.8)
 optim(par = c(1, 0.3), fn = log_lindley_geometrica2, x = amostra, control = list(fnscale = -1))
 #Restrições: par[1] > 0 e 0 < par[2] < 1
 
+
+# Escore de Fisher --------------------------------------------------------
+
+# Derivadas 
+
+# Theta-Theta
+
+dtheta2 <- function(x, par)
+{
+  n <- length(x)
+  f1 <- (x*par[1])/(par[1] + 1) + 1
+  f2 <- exp(-x*par[1])*par[2]
+  f3 <- x/(par[1] + 1)
+  f4 <- (x*par[1])/((par[1] + 1)^2)
+  
+  d1 <- (2*((x*(f1)*f2) - (f3 - f4)*f2)^2)/(1 - (f1)*f2)^2
+  d2 <- (2*(-(x^2*(f1)*f2)) + 2*x*(f3 - f4)*f2 - ((2*x*par[1])/(par[1] + 1)^3 - 2*x/(par[1] + 1)^2)*f2)/(1 - f1*f2)
+  
+  dd <- sum(d1 - d2) + (n/(par[1]+1)^2 - 2*n/par[1]^2)
+  
+  return(dd)
+}
+
+dtheta2(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
+
+# Rho-Rho
+
+drho2 <- function(x, par)
+{
+  n <- length(x)
+  f1 <- (x*par[1])/(par[1]+1) + 1
+  
+  d1 <- 2*f1*exp(-2*x*par[1])
+  d2 <- (1 - f1*exp(-x*par[1])*par[2])^2
+  
+  dd <- sum(d1/d2) -  n/(1 - par[2])^2
+  
+  return(dd) 
+}
+
+drho2(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
+
+# Theta-Rho
+
+dthetarho <- function(x, par)
+{
+  f1 <- (x*par[1])/(par[1] + 1) + 1
+  f2 <- exp(-x*par[1])
+  f3 <- x/(par[1] + 1)
+  f4 <- (x*par[1])/(par[1] + 1)^2
+  f5 <- exp(-x*par[1])*par[2]
+  
+  d1 <- (x*(f1*f2) - (f3 - f4)*f2)/(1 - f1*f5)
+  d2 <- ((f1 *f2)*(x*(f1*f5)) - (f3 - f4)*f5)/(1 - (f1*f5))^2
+  
+  dd <- sum(d1 + d2)
+  
+  return(dd)
+}
+
+dthetarho(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
