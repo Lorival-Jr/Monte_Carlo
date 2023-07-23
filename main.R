@@ -136,7 +136,7 @@ log_lindley_geometrica <- function(x, par) # par[1] será theta, par[2] é o p
   #   sum(log(exp(-theta[1]*x))) - n*log(par[1] + 1) -
   #   2*sum(log(1-theta[2]*(1+(theta[1]*x))))
   
-  n <- length(x)
+  n  <- length(x)
   f1 <- 2*n*log(par[1])
   f2 <- n*log(1-par[2])
   f3 <- sum(log(1+x))
@@ -161,57 +161,154 @@ optim(par = c(1, 0.3), fn = log_lindley_geometrica2, x = amostra, control = list
 
 # Theta-Theta
 
-dtheta2 <- function(x, par)
+dtheta2   <- function(x, par)
 {
-  n <- length(x)
-  f1 <- (x*par[1])/(par[1] + 1) + 1
-  f2 <- exp(-x*par[1])*par[2]
-  f3 <- x/(par[1] + 1)
-  f4 <- (x*par[1])/((par[1] + 1)^2)
+  n       <- length(x)
+  f1      <- (x*par[1])/(par[1] + 1) + 1
+  f2      <- exp(-x*par[1])*par[2]
+  f3      <- x/(par[1] + 1)
+  f4      <- (x*par[1])/((par[1] + 1)^2)
   
-  d1 <- (2*((x*(f1)*f2) - (f3 - f4)*f2)^2)/(1 - (f1)*f2)^2
-  d2 <- (2*(-(x^2*(f1)*f2)) + 2*x*(f3 - f4)*f2 - ((2*x*par[1])/(par[1] + 1)^3 - 2*x/(par[1] + 1)^2)*f2)/(1 - f1*f2)
+  d1      <- 2*(((x*(f1)*f2) - (f3 - f4)*f2)^2)/(1 - (f1)*f2)^2
+  d2      <- (2*(-(x^2*(f1)*f2) + 2*x*(f3 - f4)*f2 - ((2*x*par[1])/(par[1] + 1)^3 - 2*x/(par[1] + 1)^2)*f2))/(1 - f1*f2)
   
-  dd <- sum(d1 - d2) + (n/(par[1]+1)^2 - 2*n/par[1]^2)
+  dd      <- sum(d1 - d2) + (n/(par[1]+1)^2 - 2*n/(par[1]^2))
   
   return(dd)
 }
-
+set.seed(123)
 dtheta2(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
 
 # Rho-Rho
 
-drho2 <- function(x, par)
+drho2     <- function(x, par)
 {
-  n <- length(x)
-  f1 <- (x*par[1])/(par[1]+1) + 1
+  n       <- length(x)
+  f1      <- ((x*par[1])/(par[1]+1)+1)
   
-  d1 <- 2*f1*exp(-2*x*par[1])
-  d2 <- (1 - f1*exp(-x*par[1])*par[2])^2
+  d1      <- 2*f1^2*exp(-2*x*par[1])
+  d2      <- (1 - f1*exp(-x*par[1])*par[2])^2
   
-  dd <- sum(d1/d2) -  n/(1 - par[2])^2
+  dd      <- sum(d1/d2) -  n/(1 - par[2])^2
   
   return(dd) 
 }
-
+set.seed(123)
 drho2(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
 
 # Theta-Rho
 
 dthetarho <- function(x, par)
 {
-  f1 <- (x*par[1])/(par[1] + 1) + 1
-  f2 <- exp(-x*par[1])
-  f3 <- x/(par[1] + 1)
-  f4 <- (x*par[1])/(par[1] + 1)^2
-  f5 <- exp(-x*par[1])*par[2]
+  f1      <- ((x*par[1])/(par[1]+1)+1)
+  f2      <- exp(-x*par[1])
+  f3      <- x/(par[1] + 1)
+  f4      <- (x*par[1])/((par[1] + 1)^2)
+  f5      <- f2*par[2]
   
-  d1 <- (x*(f1*f2) - (f3 - f4)*f2)/(1 - f1*f5)
-  d2 <- ((f1 *f2)*(x*(f1*f5)) - (f3 - f4)*f5)/(1 - (f1*f5))^2
+  d1 <- (2*x*f1*f2)/(1-f1*f5)
   
-  dd <- sum(d1 + d2)
+  d2 <- (2*(f3-f4)*f2)/(1-f1*f5)
+  
+  d3 <- ((2*f1*f2*(x*f1*f5-(f3-f4)*f5))/(1-f1*f5)^2)
+  
+  dd <- sum(-d1 + d2 - d3)
+  
   
   return(dd)
 }
-
+set.seed(123)
 dthetarho(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
+
+
+### Implementação do vetor escore
+
+U         <- function(x, par)
+{    # Vetor escore é um vetor que contém a primeira derivada em relação a cada parâmetro, nesse caso é a derivada primeira em relação a theta, derivada primeira em relação a rho
+  
+  n       <- length(x)
+  
+  dtheta1 <- (((2*x^2+2*x)*(par[1]^2)+(2*x^2+4*x)*par[1])*par[2])
+  dtheta2 <- (((x+1)*par[1]^2+(x+2)*par[1]+1)*par[2]+(-(par[1]^2)-2*par[1]-1)*exp(x*par[1]))
+  dtheta  <- 2*n/par[1] - n/(par[1] + 1) - sum(x) + sum(dtheta1/dtheta2)
+  
+  drho1   <- ((x*par[1])/(par[1]+1)+1)
+  drho2   <- exp(-(x*par[1]))
+  drho    <- -n/(1- par[2]) + sum((2*drho1*drho2)/(1 - drho1*drho2*par[2]))
+  
+  vetor   <- matrix(nrow = 2, c(dtheta, drho))
+ 
+  return(vetor)
+}
+
+set.seed(123)
+U(rlingley_geom(1000, 3, 0.5), c(3, 0.5))
+
+
+### Implementação da matriz de Informação de Fisher
+
+J <- function(x, par)
+{
+  
+  jacobiano      <- matrix(nrow = 2, ncol = 2)
+  jacobiano[1,1] <- dtheta2(x, par)
+  jacobiano[1,2] <- dthetarho(x, par)
+  jacobiano[2,1] <- jacobiano[1,2]
+  jacobiano[2,2] <- drho2(x, par)
+  
+  return(jacobiano)
+  
+}
+
+J(rlingley_geom(1000, 0.3, 0.5), c(0.3, 0.5))
+
+
+### Função Escore de Fisher
+
+escore_f <- function(x, par, itr, erro = 0.00001)
+{
+  par <- matrix(par, nrow = 2)
+  
+  i <- 1
+  
+  while(i < itr)
+    
+  {
+    i <- i + 1
+    
+    par_novo <- par - solve(J(x, par)) %*% U(x, par)
+    
+    if(max(abs(U(x, par) - U(x, par))) < erro) break # Critério de parada
+    
+    par <- par_novo
+    
+    a <- cat('Iteração:', i, 'shape:', par_novo[1], 'scale:', par_novo[2], "\n")
+    
+  }
+  return(a)
+  
+}
+
+
+
+par <- matrix(c(6, 0.3), nrow = 2)
+x <-  rlingley_geom(1000, 4, 0.1)
+itr <- 5000
+erro <- 0.00001
+i <- 1
+
+while(i < itr)
+{
+
+  i <- i + 1
+  
+  par_novo <- par - solve(J(x, par)) %*% U(x, par)
+
+  if(max(abs(U(x, par_novo) - U(x, par))) < erro) break # Critério de parada
+ 
+  par <- par_novo
+  
+  cat('Iteração:', i, 'theta:', par_novo[1], 'rho:', par_novo[2], "\n")
+  
+}
+
