@@ -7,11 +7,11 @@
 
 ### Forma analítica
 
-dlindley_geom <- function(x, theta, p)
+dlindley_geom <- function(x, par)
 {
-  e           <- exp(-theta * x) 
-  p1          <- (theta^2 / (theta + 1)) * (1-p) * (1+ x) * e
-  p2          <- (1 - p*(1 + (theta * x)/(theta + 1)) * e)^(-2)
+  e           <- exp(-par[1] * x) 
+  p1          <- (par[1]^2 / (par[1] + 1)) * (1-par[2]) * (1+ x) * e
+  p2          <- (1 - par[2]*(1 + (par[1] * x)/(par[1] + 1)) * e)^(-2)
   pdf         <- p1 * p2
   
   return(pdf)
@@ -19,11 +19,11 @@ dlindley_geom <- function(x, theta, p)
 # restrições theta > 0 e 0 < p < 1
 #  stopifnot(p < 1, p > 0, theta > 0, x > 0) no R
 
-plindley_geom <- function(x, theta, p) 
+plindley_geom <- function(x, par) 
 {
-  e              <- exp(-theta * x)
-  p1             <- (1 + (theta*x)/(theta + 1))*e
-  cdf            <- (1 - p1)/(1 - p*p1) 
+  e              <- exp(-par[1] * x)
+  p1             <- (1 + (par[1]*x)/(par[1] + 1))*e
+  cdf            <- (1 - p1)/(1 - par[2]*p1) 
   
   return(cdf)
 }
@@ -32,21 +32,21 @@ plindley_geom <- function(x, theta, p)
 library('LambertW')
 ??LambertW
 
-qlindley_geom <- function(u, theta, p)
+qlindley_geom <- function(u, par)
   
 {
-  e           <- exp(-theta - 1)
-  p1          <- ((u - 1) * (theta + 1) * e) / (1 - p*u)
-  quantile    <- -1 - 1 / theta - W(p1, -1)* theta^(-1)
+  e           <- exp(-par[1] - 1)
+  p1          <- ((u - 1) * (par[1] + 1) * e) / (1 - par[2]*u)
+  quantile    <- -1 - 1 / par[1] - W(p1, -1)* par[1]^(-1)
   
   return(quantile)
 }
 
-rlingley_geom <- function(n, theta, p)
+rlingley_geom <- function(n, par)
 {
   
   u <- runif(n, min = 0, max = 1) 
-  rnd.values <- qlindley_geom(u, theta, p) 
+  rnd.values <- qlindley_geom(u, par) 
   return(rnd.values)
   
 }
@@ -59,18 +59,18 @@ rlingley_geom <- function(n, theta, p)
 # https://cran.r-project.org/web/packages/LindleyPowerSeries/LindleyPowerSeries.pdf
 help(dlindleygeometric)
 
-dlindley_geom(c(1, 1.5, 4), 1, 0.4)
+dlindley_geom(c(1, 1.5, 4), c(1, 0.4))
 
-plindley_geom(c(1, 1.5, 4), 1, 0.4)
+plindley_geom(c(1, 1.5, 4), c(1, 0.4))
 
-qlindley_geom(c(0.3,0.5,0.8), 2, 0.4)
+qlindley_geom(c(0.3,0.5,0.8), c(2, 0.4))
 
-rlingley_geom(100, 2, 0.4)
+rlingley_geom(100, c(2, 0.4))
 
-hist(rlingley_geom(1000, 0.8, 0.4), freq = F)
+hist(rlingley_geom(1000, c(0.8, 0.4)), freq = F)
 
 par(mfrow = c(1,2))
-hist(rlingley_geom(1000, 0.2, 0.4), freq = F)
+hist(rlingley_geom(1000, c(0.2, 0.4)), freq = F)
 hist(rgeom(1000, 0.4), freq = F)
 par(mfrow = c(1,1))
 
@@ -151,7 +151,7 @@ log_lindley_geometrica <- function(x, par) # par[1] será theta, par[2] é o p
 
 amostra <- rlingley_geom(10000, 5, 0.8)
 
-optim(par = c(1, 0.3), fn = log_lindley_geometrica2, x = amostra, control = list(fnscale = -1))
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = amostra, control = list(fnscale = -1))
 #Restrições: par[1] > 0 e 0 < par[2] < 1
 
 
@@ -177,7 +177,7 @@ dtheta2   <- function(x, par)
   return(dd)
 }
 set.seed(123)
-dtheta2(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
+dtheta2(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
 
 # Rho-Rho
 
@@ -194,7 +194,7 @@ drho2     <- function(x, par)
   return(dd) 
 }
 set.seed(123)
-drho2(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
+drho2(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
 
 # Theta-Rho
 
@@ -218,7 +218,7 @@ dthetarho <- function(x, par)
   return(dd)
 }
 set.seed(123)
-dthetarho(rlingley_geom(1000, 3,0.5), par = c(3, 0.5))
+dthetarho(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
 
 
 ### Implementação do vetor escore
@@ -292,7 +292,7 @@ escore_f <- function(x, par, itr, erro = 0.00001)
 
 
 par <- matrix(c(6, 0.3), nrow = 2)
-x <-  rlingley_geom(1000, 4, 0.1)
+x <-  rlingley_geom(1000, c(4, 0.1))
 itr <- 5000
 erro <- 0.00001
 i <- 1
@@ -310,5 +310,65 @@ while(i < itr)
   
   cat('Iteração:', i, 'theta:', par_novo[1], 'rho:', par_novo[2], "\n")
   
+  
+  
 }
 
+### OPTIM - Simulações
+
+# Número de simulações (N): 50000.
+# Tamanhos de amostra (n): 10, 20, ..., 100.
+# Valores paramétricos: devem ser consideradas combinações a fim de gerar nove cenários.
+
+# Métodos - Newton-Raphson, Nelder-Mead, BFGS, CG, L-BFGS-B, SANN
+
+help(optim)
+
+
+
+# Nelder-Mead -------------------------------------------------------------
+
+
+
+
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)), control = list(fnscale = -1), method = 'Nelder-Mead')
+#Restrições: par[1] > 0 e 0 < par[2] < 1
+
+# oq queremos guardar? par, convergencia, par pop, n
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+length(par_comb)
+N <- 50000
+
+simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,6,9,10))
+simulacoes_nelder
+ 
+dim(simulacoes_nelder) # Serão 50 mil linhas, 6 colunas e 90 matriz
+
+
+set.seed(534702)
+for (i in 1:N) # Número de simulações
+{
+  for (index_n in 1:10) # Tamanho da amostra
+  { n <- seq(10, 100, 10)[index_n]
+    for (index_par in 1:9) # Combinação de parâmetros
+    { par <- par_comb[[index_par]]
+      amostra <- rlingley_geom(n, par=par)    # Amostra
+      op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                fn = log_lindley_geometrica,  # Log-Verossimilhança
+                x = amostra,                  # Amostra
+                control = list(fnscale = -1),
+                method = 'Nelder-Mead'))      # Método
+      
+      valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence)
+      cat('itr:', i, '-' , valores, '\n')
+      simulacoes_nelder[i, ,index_par, index_n] <- valores
+      
+    }
+  }
+  
+}
+
+simulacoes_nelder # é um array que recebe por coluna - theta_estimado, rho_estimado, theta, rho, n, e se convergiu (0 = sim)
