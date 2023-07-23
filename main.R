@@ -346,7 +346,7 @@ simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,6,9,10))
 simulacoes_nelder
  
 dim(simulacoes_nelder) # Serão 50 mil linhas, 6 colunas e 90 matriz
-
+# As dimensões representam Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 set.seed(534702)
 for (i in 1:N) # Número de simulações
