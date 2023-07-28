@@ -389,10 +389,10 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),
 length(par_comb)
 N <- 50000
 
-simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,8,9,10))
-simulacoes_nelder
+simulacoes_bfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_bfgs
 
-dim(simulacoes_nelder) # Serão 50 mil linhas, 6 colunas e 90 matriz
+dim(simulacoes_bfgs) # Serão 50 mil linhas, 6 colunas e 90 matriz
 # As dimensões representam Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 set.seed(9999)
@@ -415,7 +415,7 @@ for (i in 1:N) # Número de simulações
   
   valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
   cat('itr:', i, '-' , valores, '\n')
-  simulacoes_nelder[i, ,index_par, index_n] <- valores
+  simulacoes_bfgs[i, ,index_par, index_n] <- valores
   
   }
   }
@@ -424,4 +424,5 @@ for (i in 1:N) # Número de simulações
 
 a <- try(log('a'), T)
 
+simulacoes_bfgs
 
