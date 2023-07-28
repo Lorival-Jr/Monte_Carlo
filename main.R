@@ -342,13 +342,13 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),
 length(par_comb)
 N <- 50000
 
-simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,6,9,10))
+simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,8,9,10))
 simulacoes_nelder
  
 dim(simulacoes_nelder) # Serão 50 mil linhas, 6 colunas e 90 matriz
 # As dimensões representam Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
-set.seed(534702)
+set.seed(9999)
 for (i in 1:N) # Número de simulações
 {
   for (index_n in 1:10) # Tamanho da amostra
@@ -356,13 +356,17 @@ for (i in 1:N) # Número de simulações
     for (index_par in 1:9) # Combinação de parâmetros
     { par <- par_comb[[index_par]]
       amostra <- rlingley_geom(n, par=par)    # Amostra
-      op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+      op      <- try(optim(par = c(1.5, 0.3)), # Chute inicial
                 fn = log_lindley_geometrica,  # Log-Verossimilhança
                 x = amostra,                  # Amostra
                 control = list(fnscale = -1),
-                method = 'Nelder-Mead'))      # Método
+                method = 'Nelder-Mead',
+                hessian = T)      # Método
       
-      valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence)
+      h <- try(solve(op$hessian))
+      if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}
+      
+      valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
       cat('itr:', i, '-' , valores, '\n')
       simulacoes_nelder[i, ,index_par, index_n] <- valores
       
@@ -372,3 +376,52 @@ for (i in 1:N) # Número de simulações
 }
 
 simulacoes_nelder # é um array que recebe por coluna - theta_estimado, rho_estimado, theta, rho, n, e se convergiu (0 = sim)
+
+
+# BFGS --------------------------------------------------------------------
+
+library(LambertW)
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)), control = list(fnscale = -1), method = 'BFGS', hessian = T)
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+length(par_comb)
+N <- 50000
+
+simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_nelder
+
+dim(simulacoes_nelder) # Serão 50 mil linhas, 6 colunas e 90 matriz
+# As dimensões representam Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+
+set.seed(9999)
+for (i in 1:N) # Número de simulações
+{
+  for (index_n in 1:10) # Tamanho da amostra
+  { n <- seq(10, 100, 10)[index_n]
+  for (index_par in 1:9) # Combinação de parâmetros
+  { par <- par_comb[[index_par]]
+  amostra <- rlingley_geom(n, par=par)    # Amostra
+  op      <- optim(par = c(1.5, 0.3), # Chute inicial
+                   fn = log_lindley_geometrica,  # Log-Verossimilhança
+                   x = amostra,                  # Amostra
+                   control = list(fnscale = -1),
+                   method = 'BFGS',       # Método
+                   hessian = T)  
+  
+  h <- try(solve(op$hessian))
+  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}
+  
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  cat('itr:', i, '-' , valores, '\n')
+  simulacoes_nelder[i, ,index_par, index_n] <- valores
+  
+  }
+  }
+  
+}
+
+a <- try(log('a'), T)
+
+
