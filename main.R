@@ -157,11 +157,13 @@ optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = amostra, control = list(
 
 # Escore de Fisher --------------------------------------------------------
 
-# Derivadas 
+# Derivadas segundas
+
+# Essas derivadas são usadas no Jacobiano
 
 # Theta-Theta
 
-dtheta2   <- function(x, par)
+dtheta2   <- function(x, par)           # Derivada segunda da log-verossimilhança em relação a theta
 {
   n       <- length(x)
   f1      <- (x*par[1])/(par[1] + 1) + 1
@@ -181,7 +183,7 @@ dtheta2(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
 
 # Rho-Rho
 
-drho2     <- function(x, par)
+drho2     <- function(x, par)          # Derivada segunda da log-verossimilhança em relação a rho
 {
   n       <- length(x)
   f1      <- ((x*par[1])/(par[1]+1)+1)
@@ -198,7 +200,7 @@ drho2(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
 
 # Theta-Rho
 
-dthetarho <- function(x, par)
+dthetarho <- function(x, par)          # Derivada segunda da log-verossimilhança em relação a theta e depois a rho
 {
   f1      <- ((x*par[1])/(par[1]+1)+1)
   f2      <- exp(-x*par[1])
@@ -245,7 +247,7 @@ set.seed(123)
 U(rlingley_geom(1000, 3, 0.5), c(3, 0.5))
 
 
-### Implementação da matriz de Informação de Fisher
+### Implementação da matriz de Informação de Fisher - Jacobiano
 
 J <- function(x, par)
 {
@@ -263,10 +265,10 @@ J <- function(x, par)
 J(rlingley_geom(1000, 0.3, 0.5), c(0.3, 0.5))
 
 
-### Função Escore de Fisher
+### Função Escore de Fisher 
 
-escore_f <- function(x, par, itr, erro = 0.00001)
-{
+escore_f <- function(x, par, itr, erro = 0.00001)     # Comecei a implementar uma função, mas tá explodindo
+{                                                     # daí to testando fora da função, logo a baixo
   par <- matrix(par, nrow = 2)
   
   i <- 1
@@ -291,15 +293,15 @@ escore_f <- function(x, par, itr, erro = 0.00001)
 
 
 
-par <- matrix(c(6, 0.3), nrow = 2)
+par <- matrix(c(6, 0.3), nrow = 2)                # Os valores que o Newton-raphson precisa
 x <-  rlingley_geom(1000, c(4, 0.1))
 itr <- 5000
 erro <- 0.00001
 i <- 1
 
-while(i < itr)
-{
-
+while(i < itr)                                    # Método de Newton-Raphson, mas tá explodindo
+{                                                 # Erro pode ser nas derivas, na verossimilhança 
+                                                  # ou na própria implementação do método
   i <- i + 1
   
   par_novo <- par - solve(J(x, par)) %*% U(x, par)
@@ -330,60 +332,72 @@ help(optim)
 
 
 
+# Uma tentativa de maximização com optim
 
 optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)), control = list(fnscale = -1), method = 'Nelder-Mead')
 #Restrições: par[1] > 0 e 0 < par[2] < 1
 
-# oq queremos guardar? par, convergencia, par pop, n
 
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),
-                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+# oq queremos guardar? par, convergencia, par pop, n, e as variâncias que vem da hessiana
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),   # Ele pede 9 combinações de parâmetros
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),   # Daí são as combinações
                  c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
 length(par_comb)
-N <- 50000
+N <- 50000                                                # O N de simulações pedido é 50000
 
-simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,8,9,10))
-simulacoes_nelder
+simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,8,9,10))  # Esse array vai guardar os resultados
+simulacoes_nelder                                         # Basicamente são 90 matrizes dentro de um array
  
-dim(simulacoes_nelder) # Serão 50 mil linhas, 6 colunas e 90 matriz
-# As dimensões representam Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
+
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+
 
 set.seed(9999)
 for (i in 1:N) # Número de simulações
 {
   for (index_n in 1:10) # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
+  
     for (index_par in 1:9) # Combinação de parâmetros
     { par <- par_comb[[index_par]]
-      amostra <- rlingley_geom(n, par=par)    # Amostra
+      amostra <- rlingley_geom(n, par=par)     # Amostra
       op      <- try(optim(par = c(1.5, 0.3)), # Chute inicial
-                fn = log_lindley_geometrica,  # Log-Verossimilhança
-                x = amostra,                  # Amostra
+                fn = log_lindley_geometrica,   # Log-Verossimilhança
+                x = amostra,                   # Amostra
                 control = list(fnscale = -1),
-                method = 'Nelder-Mead',
-                hessian = T)      # Método
+                method = 'Nelder-Mead',        # Método
+                hessian = T)                   # Calcular a hessiana
       
-      h <- try(solve(op$hessian))
-      if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}
+      h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+      if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+                                                             # Daí se o tipo for character, h vira um vetor de NA
       
       valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
-      cat('itr:', i, '-' , valores, '\n')
-      simulacoes_nelder[i, ,index_par, index_n] <- valores
+      # Valores recebe o que queremos dessa bagaça toda,
+      # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+      
+      cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
+      
+      simulacoes_nelder[i, ,index_par, index_n] <- valores  # Guarda na tabela
       
     }
   }
   
 }
 
-simulacoes_nelder # é um array que recebe por coluna - theta_estimado, rho_estimado, theta, rho, n, e se convergiu (0 = sim)
+simulacoes_nelder # é um array que recebe por coluna - theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
 
 
 # BFGS --------------------------------------------------------------------
 
 library(LambertW)
-optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)), control = list(fnscale = -1), method = 'BFGS', hessian = T)
 
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),
+# Uma tentativa de maximização com optim
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)), control = list(fnscale = -1), method = 'BFGS', hessian = T)
+ 
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
                  c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
                  c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
 length(par_comb)
@@ -392,37 +406,44 @@ N <- 50000
 simulacoes_bfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
 simulacoes_bfgs
 
-dim(simulacoes_bfgs) # Serão 50 mil linhas, 6 colunas e 90 matriz
-# As dimensões representam Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+dim(simulacoes_bfgs) # Serão 50 mil linhas, 8 colunas e 90 matrizes
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+
 
 set.seed(9999)
-for (i in 1:N) # Número de simulações
+for (i in 1:N)                                  # Número de simulações
 {
-  for (index_n in 1:10) # Tamanho da amostra
+  for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
-  for (index_par in 1:9) # Combinação de parâmetros
-  { par <- par_comb[[index_par]]
-  amostra <- rlingley_geom(n, par=par)    # Amostra
-  op      <- optim(par = c(1.5, 0.3), # Chute inicial
-                   fn = log_lindley_geometrica,  # Log-Verossimilhança
-                   x = amostra,                  # Amostra
-                   control = list(fnscale = -1),
-                   method = 'BFGS',       # Método
-                   hessian = T)  
   
-  h <- try(solve(op$hessian))
-  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}
-  
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
-  cat('itr:', i, '-' , valores, '\n')
-  simulacoes_bfgs[i, ,index_par, index_n] <- valores
-  
-  }
+    for (index_par in 1:9)                         # Combinação de parâmetros
+    { par <- par_comb[[index_par]]
+    amostra <- rlingley_geom(n, par=par)           # Amostra
+    op      <- optim(par = c(1.5, 0.3),            # Chute inicial
+                     fn = log_lindley_geometrica,  # Log-Verossimilhança
+                     x = amostra,                  # Amostra
+                     control = list(fnscale = -1),
+                     method = 'BFGS',              # Método
+                     hessian = T)                   # Calcular a hessiana
+    
+    h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+    # Daí se o tipo for character, h vira um vetor de NA
+    
+    valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+    # Valores recebe o que queremos dessa bagaça toda,
+    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+    
+    cat('itr:', i, '-' , valores, '\n')
+    simulacoes_bfgs[i, ,index_par, index_n] <- valores
+    
+    }
   }
   
 }
 
-a <- try(log('a'), T)
+a <- try(log('a'), T) # Só pra entender como try funciona
+a
 
 simulacoes_bfgs
 
