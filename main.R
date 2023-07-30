@@ -329,7 +329,7 @@ help(optim)
 
 
 # Nelder-Mead -------------------------------------------------------------
-
+library(LambertW)
 
 
 # Uma tentativa de maximização com optim
@@ -358,17 +358,26 @@ set.seed(9999)
 for (i in 1:N) # Número de simulações
 {
   for (index_n in 1:10) # Tamanho da amostra
-  { n <- seq(10, 100, 10)[index_n]
+  {n <- seq(10, 100, 10)[index_n]
   
     for (index_par in 1:9) # Combinação de parâmetros
     { par <- par_comb[[index_par]]
       amostra <- rlingley_geom(n, par=par)     # Amostra
-      op      <- try(optim(par = c(1.5, 0.3)), # Chute inicial
+      op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
                 fn = log_lindley_geometrica,   # Log-Verossimilhança
                 x = amostra,                   # Amostra
                 control = list(fnscale = -1),
                 method = 'Nelder-Mead',        # Método
-                hessian = T)                   # Calcular a hessiana
+                hessian = T), T)                  # Calcular a hessiana
+      
+      if(typeof(op) == 'character')
+      { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                             fn = log_lindley_geometrica,   # Log-Verossimilhança
+                             x = amostra,                   # Amostra
+                             control = list(fnscale = -1),
+                             method = 'Nelder-Mead',        # Método
+                             hessian = F))                  
+      }
       
       h <- try(solve(op$hessian))              # Tenta inverter a hessiana
       if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
@@ -419,12 +428,21 @@ for (i in 1:N)                                  # Número de simulações
     for (index_par in 1:9)                         # Combinação de parâmetros
     { par <- par_comb[[index_par]]
     amostra <- rlingley_geom(n, par=par)           # Amostra
-    op      <- optim(par = c(1.5, 0.3),            # Chute inicial
+    op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
                      fn = log_lindley_geometrica,  # Log-Verossimilhança
                      x = amostra,                  # Amostra
                      control = list(fnscale = -1),
                      method = 'BFGS',              # Método
-                     hessian = T)                   # Calcular a hessiana
+                     hessian = T))                  # Calcular a hessiana
+    
+    if(typeof(op) == 'character')
+    { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                           fn = log_lindley_geometrica,   # Log-Verossimilhança
+                           x = amostra,                   # Amostra
+                           control = list(fnscale = -1),
+                           method = 'Nelder-Mead',        # Método
+                           hessian = F))                  
+    }
     
     h <- try(solve(op$hessian))              # Tenta inverter a hessiana
     if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
@@ -447,3 +465,142 @@ a
 
 simulacoes_bfgs
 
+
+# Método CG ---------------------------------------------------------------
+
+library(LambertW)
+
+# Uma tentativa de maximização com optim
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)), control = list(fnscale = -1), method = 'CG', hessian = T)
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+length(par_comb)
+N <- 50000
+
+simulacoes_cg <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_cg
+
+dim(simulacoes_cg) # Serão 50 mil linhas, 8 colunas e 90 matrizes
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+
+set.seed(9999)
+for (i in 1:N)                                  # Número de simulações
+{
+  for (index_n in 1:10)                         # Tamanho da amostra
+  { n <- seq(10, 100, 10)[index_n]
+  
+  for (index_par in 1:9)                         # Combinação de parâmetros
+  { par <- par_comb[[index_par]]
+  amostra <- rlingley_geom(n, par=par)           # Amostra
+  op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
+                       fn = log_lindley_geometrica,  # Log-Verossimilhança
+                       x = amostra,                  # Amostra
+                       control = list(fnscale = -1),
+                       method = 'CG',              # Método
+                       hessian = T))                  # Calcular a hessiana
+  
+  if(typeof(op) == 'character')
+  { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                         fn = log_lindley_geometrica,   # Log-Verossimilhança
+                         x = amostra,                   # Amostra
+                         control = list(fnscale = -1),
+                         method = 'CG',        # Método
+                         hessian = F))                  
+  }
+  
+  h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+  # Daí se o tipo for character, h vira um vetor de NA
+  
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  # Valores recebe o que queremos dessa bagaça toda,
+  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+  
+  cat('itr:', i, '-' , valores, '\n')
+  simulacoes_cg[i, ,index_par, index_n] <- valores
+  
+  }
+  }
+  
+}
+
+simulacoes_cg
+
+
+# Método L-BFGS-B ---------------------------------------------------------
+
+library(LambertW)
+
+# Uma tentativa de maximização com optim
+
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)),
+      control = list(fnscale = -1), method = 'L-BFGS-B', lower = c(1.00001,0.001), upper = c(Inf,1), hessian = T)
+
+# Me parece meio instável, talvez se reduzir o intervalo
+optim(par = c(2, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)),
+      control = list(fnscale = -1), method = 'L-BFGS-B', lower = c(1.00001,0.001), upper = c(Inf,1), hessian = T)
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
+                 c(  1.5, 0.1), c(  1.5, 0.5), c(  1.5, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+length(par_comb)
+N <- 50000
+
+simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_lbfgs
+
+help(optim)
+
+set.seed(9999)
+for (i in 1:N)                                  # Número de simulações
+{
+  for (index_n in 1:10)                         # Tamanho da amostra
+  { n <- seq(10, 100, 10)[index_n]
+  
+  for (index_par in 1:9)                         # Combinação de parâmetros
+  { par <- par_comb[[index_par]]
+  amostra <- rlingley_geom(n, par=par)               # Amostra
+  op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
+                       fn = log_lindley_geometrica,  # Log-Verossimilhança
+                       x = amostra,                  # Amostra
+                       control = list(fnscale = -1),
+                       method = 'L-BFGS-B',          # Método
+                       hessian = T,                  # Calcular a hessiana
+                       lower = c(1.0001, 0.0001),
+                       upper = c(Inf, 1)
+                       ))                 
+  
+  if(typeof(op) == 'character')
+  { op      <-  try(optim(par = c(1.5, 0.3),            # Chute inicial
+                          fn = log_lindley_geometrica,  # Log-Verossimilhança
+                          x = amostra,                  # Amostra
+                          control = list(fnscale = -1),
+                          method = 'L-BFGS-B',          # Método
+                          lower = c(1.0001, 0.0001),
+                          upper = c(Inf, 1)
+  ))                   
+  }
+  
+  if(typeof(op) == 'character')
+  { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
+    next}
+  
+  h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+  # Daí se o tipo for character, h vira um vetor de NA
+  
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  # Valores recebe o que queremos dessa bagaça toda,
+  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+  
+  cat('itr:', i, '-' , valores, '\n')
+  simulacoes_lbfgs[i, ,index_par, index_n] <- valores
+  
+  }
+  }
+  
+}
+
+simulacoes_lbfgs
