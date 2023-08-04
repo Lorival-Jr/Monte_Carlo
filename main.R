@@ -258,7 +258,7 @@ J <- function(x, par)
   jacobiano[2,1] <- jacobiano[1,2]
   jacobiano[2,2] <- drho2(x, par)
   
-  return(jacobiano)
+  return(-jacobiano)
   
 }
 
@@ -354,9 +354,9 @@ dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-set.seed(9999)
+
 for (i in 1:N) # Número de simulações
-{
+{ set.seed(9999)
   for (index_n in 1:10) # Tamanho da amostra
   {n <- seq(10, 100, 10)[index_n]
   
@@ -376,7 +376,8 @@ for (i in 1:N) # Número de simulações
                              x = amostra,                   # Amostra
                              control = list(fnscale = -1),
                              method = 'Nelder-Mead',        # Método
-                             hessian = F))                  
+                             hessian = F)) 
+      
       }
       
       h <- try(solve(op$hessian))              # Tenta inverter a hessiana
@@ -398,6 +399,10 @@ for (i in 1:N) # Número de simulações
 
 simulacoes_nelder # é um array que recebe por coluna - theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
 
+dim(simulacoes_nelder)
+
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+simulacoes_nelder[,,9,1]
 
 # BFGS --------------------------------------------------------------------
 
@@ -419,9 +424,9 @@ dim(simulacoes_bfgs) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-set.seed(9999)
+
 for (i in 1:N)                                  # Número de simulações
-{
+{ set.seed(9999)
   for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
   
@@ -440,12 +445,15 @@ for (i in 1:N)                                  # Número de simulações
                            fn = log_lindley_geometrica,   # Log-Verossimilhança
                            x = amostra,                   # Amostra
                            control = list(fnscale = -1),
-                           method = 'Nelder-Mead',        # Método
-                           hessian = F))                  
+                           method = 'BFGS',        # Método
+                           hessian = F))    
+    
     }
     
-    h <- try(solve(op$hessian))              # Tenta inverter a hessiana
-    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+    if(typeof(op) == 'character'){op <- list(par = c(NA, NA), convergence = 99)}
+    
+    h <- try(solve(op$hessian), T)              # Tenta inverter a hessiana
+    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invertível, ele guarda o erro em character
     # Daí se o tipo for character, h vira um vetor de NA
     
     valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
@@ -459,7 +467,8 @@ for (i in 1:N)                                  # Número de simulações
   }
   
 }
-
+a <- try(solve(asdas))
+a
 a <- try(log('a'), T) # Só pra entender como try funciona
 a
 
@@ -487,7 +496,7 @@ dim(simulacoes_cg) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 
 set.seed(9999)
 for (i in 1:N)                                  # Número de simulações
-{
+{ 
   for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
   
@@ -509,6 +518,11 @@ for (i in 1:N)                                  # Número de simulações
                          method = 'CG',        # Método
                          hessian = F))                  
   }
+  
+  if(typeof(op) == 'character')
+  { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
+  simulacoes_lbfgs[i, ,index_par, index_n] <- valores
+  next}
   
   h <- try(solve(op$hessian))              # Tenta inverter a hessiana
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
@@ -540,10 +554,10 @@ optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4,
 
 # Me parece meio instável, talvez se reduzir o intervalo
 optim(par = c(2, 0.3), fn = log_lindley_geometrica, x = rlingley_geom(1000, c(4, 0.1)),
-      control = list(fnscale = -1), method = 'L-BFGS-B', lower = c(1.00001,0.001), upper = c(Inf,1), hessian = T)
+      control = list(fnscale = -1), method = 'L-BFGS-B', lower = c(0,0.001), upper = c(Inf,1), hessian = T)
 
-par_comb <- list(c(1.5, 0.1), c(1.5, 0.5), c(1.5, 0.8), # Ele pede 9 combinações de parâmetros
-                 c(  2, 0.1), c(  2, 0.5), c(  2, 0.8),
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
                  c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
 length(par_comb)
 N <- 50000
@@ -551,11 +565,10 @@ N <- 50000
 simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
 simulacoes_lbfgs
 
-help(optim)
 
 set.seed(9999)
 for (i in 1:N)                                  # Número de simulações
-{
+{ 
   for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
   
@@ -568,7 +581,7 @@ for (i in 1:N)                                  # Número de simulações
                        control = list(fnscale = -1),
                        method = 'L-BFGS-B',          # Método
                        hessian = T,                  # Calcular a hessiana
-                       lower = c(1.0001, 0.0001),
+                       lower = c(0, 0.0001),
                        upper = c(Inf, 1)
                        ))                 
   
@@ -578,20 +591,21 @@ for (i in 1:N)                                  # Número de simulações
                           x = amostra,                  # Amostra
                           control = list(fnscale = 1),
                           method = 'L-BFGS-B',          # Método
-                          lower = c(1.0001, 0.0001),
+                          lower = c(0, 0),
                           upper = c(Inf, 1)
   ))                   
   }
   
   if(typeof(op) == 'character')
   { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
+    simulacoes_lbfgs[i, ,index_par, index_n] <- valores
     next}
   
   h <- try(solve(op$hessian))              # Tenta inverter a hessiana
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
   # Daí se o tipo for character, h vira um vetor de NA
   
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence,  [1], h[4])
   # Valores recebe o que queremos dessa bagaça toda,
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
@@ -660,8 +674,8 @@ par_comb <- list(c(1.5, 0.1), c(1.5, 0.5), c(1.5, 0.8), # Ele pede 9 combinaçõ
 length(par_comb)
 N <- 50000
 
-simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
-simulacoes_lbfgs
+simulacoes_sann <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_sann
 
 A <- matrix(c(0, 1, 1,0), 2, 2)           # Restrições dos parâmetros
 B <- c(-0.0001, 0.0001)                   # 0theta + 1rho >= 0.0001      e 1theta + 0rho >=0
@@ -677,25 +691,14 @@ for (i in 1:N)                                  # Número de simulações
   for (index_par in 1:9)                         # Combinação de parâmetros
   { par <- par_comb[[index_par]]
   amostra <- rlingley_geom(n, par=par)               # Amostra
-  op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
-                       fn = log_lindley_geometrica,  # Log-Verossimilhança
-                       x = amostra,                  # Amostra
-                       control = list(fnscale = -1),
-                       method = 'L-BFGS-B',          # Método
-                       hessian = T,                  # Calcular a hessiana
-                       lower = c(1.0001, 0.0001),
-                       upper = c(Inf, 1)
-  ))                 
+  op      <- try(maxLik(log_lindley_geometrica,
+                        start = c(1.1, 0.3),
+                        xi=amostra,
+                        method = 'SANN',
+                        constraints = list(ineqA=A, ineqB=B)))             
   
   if(typeof(op) == 'character')
-  { op      <-  try(optim(par = c(1.5, 0.3),            # Chute inicial
-                          fn = log_lindley_geometrica,  # Log-Verossimilhança
-                          x = amostra,                  # Amostra
-                          control = list(fnscale = 1),
-                          method = 'L-BFGS-B',          # Método
-                          lower = c(1.0001, 0.0001),
-                          upper = c(Inf, 1)
-  ))                   
+  { op      <-  try()                   
   }
   
   if(typeof(op) == 'character')
@@ -711,11 +714,25 @@ for (i in 1:N)                                  # Número de simulações
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
   cat('itr:', i, '-' , valores, '\n')
-  simulacoes_lbfgs[i, ,index_par, index_n] <- valores
+  simulacoes_sann[i, ,index_par, index_n] <- valores
   
   }
   }
   
 }
 
+simulacoes_sann
+
+# Salvando as simulaçoes
+
+simulacoes_bfgs
+simulacoes_cg
+simulacoes_nelder
 simulacoes_lbfgs
+simulacoes_cg[,,8,9]
+# save(simulacoes_bfgs, file='simulacoes_bfgs.RData')
+# save(simulacoes_cg, file='simulacoes_cg.RData')
+# save(simulacoes_nelder, file='simulacoes_nelder.RData')
+# save(simulacoes_lbfgs, file='simulacoes_lbfgs.RData')
+
+
