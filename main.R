@@ -354,9 +354,9 @@ dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-
+set.seed(9999)
 for (i in 1:N) # Número de simulações
-{ set.seed(9999)
+{ 
   for (index_n in 1:10) # Tamanho da amostra
   {n <- seq(10, 100, 10)[index_n]
   
@@ -424,9 +424,9 @@ dim(simulacoes_bfgs) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-
+set.seed(9999)
 for (i in 1:N)                                  # Número de simulações
-{ set.seed(9999)
+{ 
   for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
   
@@ -521,7 +521,7 @@ for (i in 1:N)                                  # Número de simulações
   
   if(typeof(op) == 'character')
   { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
-  simulacoes_lbfgs[i, ,index_par, index_n] <- valores
+  simulacoes_cg[i, ,index_par, index_n] <- valores
   next}
   
   h <- try(solve(op$hessian))              # Tenta inverter a hessiana
@@ -605,7 +605,7 @@ for (i in 1:N)                                  # Número de simulações
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
   # Daí se o tipo for character, h vira um vetor de NA
   
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence,  [1], h[4])
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence,  H[1], h[4])
   # Valores recebe o que queremos dessa bagaça toda,
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
