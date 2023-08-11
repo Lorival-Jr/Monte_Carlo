@@ -581,8 +581,8 @@ for (i in 1:N)                                  # Número de simulações
                        control = list(fnscale = -1),
                        method = 'L-BFGS-B',          # Método
                        hessian = T,                  # Calcular a hessiana
-                       lower = c(0, 0.0001),
-                       upper = c(Inf, 1)
+                       lower = c(0.000001, 0),
+                       upper = c(10, 0.999999)
                        ))                 
   
   if(typeof(op) == 'character')
@@ -591,8 +591,8 @@ for (i in 1:N)                                  # Número de simulações
                           x = amostra,                  # Amostra
                           control = list(fnscale = 1),
                           method = 'L-BFGS-B',          # Método
-                          lower = c(0, 0),
-                          upper = c(Inf, 1)
+                          lower = c(0.000001, 0),
+                          upper = c(10, 0.999999)
   ))                   
   }
   
@@ -605,7 +605,7 @@ for (i in 1:N)                                  # Número de simulações
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
   # Daí se o tipo for character, h vira um vetor de NA
   
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence,  H[1], h[4])
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence,  h[1], h[4])
   # Valores recebe o que queremos dessa bagaça toda,
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
