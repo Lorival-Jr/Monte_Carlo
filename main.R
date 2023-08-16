@@ -355,6 +355,10 @@ dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 
 
 set.seed(9999)
+index_par <- 1
+
+
+#BREAKPOINT
 for (i in 1:N) # Número de simulações
 { 
   for (index_n in 1:10) # Tamanho da amostra
@@ -736,3 +740,117 @@ simulacoes_cg[,,8,9]
 # save(simulacoes_lbfgs, file='simulacoes_lbfgs.RData')
 
 
+
+
+
+
+
+# Método SANN -------------------------------------------------------------
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), 
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+length(par_comb)
+N <- 50000
+
+simulacoes_sann <- array(c(rep(0,6)), dim=c(N,8,9,10))
+
+
+
+
+
+
+
+f1 <- function(par, xs) {
+  
+  n  <- length(xs)
+  f1 <- 2*n*log(par[1])
+  f2 <- n*log(1-par[2])
+  f3 <- sum(log(1+xs))
+  f4 <- sum(-par[1]*xs)
+  f5 <- n*log(par[1]+1)
+  f6 <- 2*sum(log(1-par[2]*(1+par[1]*xs/(par[1]+1))*exp(-xs*par[1])))
+  
+  ll <- f1 + f2 + f3 + f4 - f5 - f6
+  return(ll)
+  
+  
+}
+
+
+# sa <- function(f, N, rho, t0, theta0) {
+#   
+#   y <- NULL
+#   
+#   theta.old <- c()
+#   theta.old[1] <- theta0[1]
+#   theta.old[2] <- theta0[2]
+#   
+#   repeat {
+#     
+#     s <- 0
+#     
+#     for (k in 1:N) {
+#       f.old <- f(theta.old, xs)
+#       theta.new <- runif(1, -1, 1) + t
+#     }
+#     
+#   }
+#   
+# }
+
+
+# GABRIEL FAZENDO
+library(maxLik)
+?maxLik
+for (i in 1:N) {
+  for (index_n in 1:10) {
+    
+    
+    n <- seq(1, 100, 10)[index_n]
+    
+    for (index_par in 1:9) {
+      
+      par <- par_comb[[index_par]]
+      amostra <- rlingley_geom(n, par=par)
+      op <- try(maxLik(logLik = log_lindley_geometrica, start = c(1.5, 0.3), 
+                       method = 'SANN', x = amostra))
+      
+      
+      
+    }
+    
+    h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}
+    
+    valores <- c(coef(op)[1], coef(op)[2], par[1], par[2], n, 1,  h[1], h[4])
+    # Valores recebe o que queremos dessa bagaça toda,
+    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+    
+    cat('itr:', i, '-' , valores, '\n')
+    simulacoes_lbfgs[i, ,index_par, index_n] <- valores
+  }
+  
+  
+}
+
+log_lindley_geometrica <- function(x, par) # par[1] será theta, par[2] é o p
+{  #Restrições: par[1] > 0 e 0 < par[2] < 1
+  
+  
+  # 2*n*log(par[1]) + n*log(1-par[2]) + sum(log(1+x)) + 
+  #   sum(log(exp(-theta[1]*x))) - n*log(par[1] + 1) -
+  #   2*sum(log(1-theta[2]*(1+(theta[1]*x))))
+  
+  n  <- length(x)
+  f1 <- 2*n*log(par[1])
+  f2 <- n*log(1-par[2])
+  f3 <- sum(log(1+x))
+  f4 <- sum(-par[1]*x)
+  f5 <- n*log(par[1]+1)
+  f6 <- 2*sum(log(1-par[2]*(1+par[1]*x/(par[1]+1))*exp(-x*par[1])))
+  
+  ll <- f1 + f2 + f3 + f4 - f5 - f6
+  return(ll)
+  
+}
