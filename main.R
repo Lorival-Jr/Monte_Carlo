@@ -354,9 +354,9 @@ dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-set.seed(9999)
+
 for (i in 1:N) # Número de simulações
-{ 
+{ set.seed(9999)
   for (index_n in 1:10) # Tamanho da amostra
   {n <- seq(10, 100, 10)[index_n]
   
@@ -404,6 +404,19 @@ dim(simulacoes_nelder)
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 simulacoes_nelder[,,9,1]
 
+
+simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,]  # dá pra fazer assim vicio
+(simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2 # EQM
+
+((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) 
+& ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # IC
+
+
+
+
+
+
+
 # BFGS --------------------------------------------------------------------
 
 library(LambertW)
@@ -424,9 +437,9 @@ dim(simulacoes_bfgs) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-set.seed(9999)
+
 for (i in 1:N)                                  # Número de simulações
-{ 
+{ set.seed(9999)
   for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
   
@@ -581,8 +594,8 @@ for (i in 1:N)                                  # Número de simulações
                        control = list(fnscale = -1),
                        method = 'L-BFGS-B',          # Método
                        hessian = T,                  # Calcular a hessiana
-                       lower = c(0.000001, 0),
-                       upper = c(10, 0.999999)
+                       lower = c(0.000001, 0.000001),
+                       upper = c(100, 0.999999)
                        ))                 
   
   if(typeof(op) == 'character')
@@ -591,8 +604,8 @@ for (i in 1:N)                                  # Número de simulações
                           x = amostra,                  # Amostra
                           control = list(fnscale = 1),
                           method = 'L-BFGS-B',          # Método
-                          lower = c(0.000001, 0),
-                          upper = c(10, 0.999999)
+                          lower = c(0.000001,  0.000001),
+                          upper = c(100, 0.999999)
   ))                   
   }
   
@@ -736,3 +749,15 @@ simulacoes_cg[,,8,9]
 # save(simulacoes_lbfgs, file='simulacoes_lbfgs.RData')
 
 
+# Verificando os resultados das simulações --------------------------------
+
+
+simulacoes_nelder[,,1,2]
+simulacoes_nelder[,1,1,] # Todos os theta estimados quando theta = 0.5
+
+simulacoes_nelder[,1,1,][simulacoes_nelder[,1,1,] == 0]
+
+thetas_nelder <- apply(simulacoes_nelder[,1,1,] , MARGIN = 2, FUN= mean) # A média de cada uma das
+thetas_nelder
+plot(thetas_nelder, type = 'l', ylim = c(0.45, 0.70))
+abline(h=0.5, col = 'red')
