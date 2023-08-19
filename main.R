@@ -404,12 +404,12 @@ simulacoes_nelder[,,9,1]
 
 simulacoes_nelder[,8,,]  <-  simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,]     # Vício de rho
 simulacoes_nelder[,9,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2 # EQM de rho
-simulacoes_nelder[,10,,] <- (-simulacoes_nelder[,6,,] / simulacoes_nelder[,5,,])^0.5
+simulacoes_nelder[,10,,] <- (simulacoes_nelder[,6,,] / simulacoes_nelder[,5,,])^0.5
 simulacoes_nelder[,11,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
 
 simulacoes_nelder[,12,,] <-  simulacoes_nelder[,2,,] - simulacoes_nelder[,4,,]
 simulacoes_nelder[,13,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2
-simulacoes_nelder[,14,,] <- (-simulacoes_nelder[,7,,] / simulacoes_nelder[,5,,])^0.5
+simulacoes_nelder[,14,,] <- (simulacoes_nelder[,7,,] / simulacoes_nelder[,5,,])^0.5
 simulacoes_nelder[,15,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
 
 simulacoes_nelder
