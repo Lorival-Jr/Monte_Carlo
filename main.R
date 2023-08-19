@@ -346,36 +346,22 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),   # Ele pede 9 combinaç
 length(par_comb)
 N <- 50000                                                # O N de simulações pedido é 50000
 
-simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,8,9,10))  # Esse array vai guardar os resultados
+simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,15,9,10))  # Esse array vai guardar os resultados
 simulacoes_nelder                                         # Basicamente são 90 matrizes dentro de um array
  
-dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
+dim(simulacoes_nelder) # Serão 50 mil linhas, 15 colunas e 90 matrizes
 
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
-
-
-
-teste <- array(c(rep(0, 6)), dim = c(4, 3, 2, 4))
 set.seed(9999)
-index_par <- 1
-
-teste[1, 1, 2, 4] <- 3
-#BREAKPOINT
-
-i <- 1
-index_n <- 1
-index_par <- 2
-h[3]
-class(op$hessian)
 for (i in 1:N) # Número de simulações
-{ set.seed(9999)
+{ 
   for (index_n in 1:10) # Tamanho da amostra
   {n <- seq(10, 100, 10)[index_n]
   
     for (index_par in 1:9) # Combinação de parâmetros
     { par <- par_comb[[index_par]]
       amostra <- rlingley_geom(n, par=par)     # Amostra
-      op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+      op      <- try(optim(par = par, # Chute inicial
                 fn = log_lindley_geometrica,   # Log-Verossimilhança
                 x = amostra,                   # Amostra
                 control = list(fnscale = -1),
@@ -383,7 +369,7 @@ for (i in 1:N) # Número de simulações
                 hessian = T), T)                  # Calcular a hessiana
       
       if(typeof(op) == 'character')
-      { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+      { op      <- try(optim(par = par, # Chute inicial
                              fn = log_lindley_geometrica,   # Log-Verossimilhança
                              x = amostra,                   # Amostra
                              control = list(fnscale = -1),
@@ -396,9 +382,9 @@ for (i in 1:N) # Número de simulações
       if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
                                                              # Daí se o tipo for character, h vira um vetor de NA
       
-      valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+      valores <- c(op$par[1], op$par[2], par[1], par[2], n, -h[1], -h[4], rep(0,8))
       # Valores recebe o que queremos dessa bagaça toda,
-      # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+      # theta_estimado, rho_estimado, theta_real, rho_real, n, variância_rho, variância_theta, e os zeros serão substituídos fora do for por vício_theta, eqm_theta, erro padrão_theta, probabilidade de cobertura_theta, vício_rho, eqm_rho, erro padrão_rho, probabilidade de cobertura_rho
       
       cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
       
@@ -409,21 +395,24 @@ for (i in 1:N) # Número de simulações
   
 }
 
-simulacoes_nelder # é um array que recebe por coluna - theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+simulacoes_nelder #theta_estimado, rho_estimado, theta_real, rho_real, n, variância_rho, variância_theta, e os zeros serão substituídos fora do for por vício_theta, eqm_theta, erro padrão_theta, probabilidade de cobertura_theta, vício_rho, eqm_rho, erro padrão_rho, probabilidade de cobertura_rho
 
-dim(simulacoes_nelder)
 
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 simulacoes_nelder[,,9,1]
 
 
-simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,]  # dá pra fazer assim vicio
-(simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2 # EQM
+simulacoes_nelder[,8,,]  <-  simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,]     # Vício de rho
+simulacoes_nelder[,9,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2 # EQM de rho
+simulacoes_nelder[,10,,] <- (-simulacoes_nelder[,6,,] / simulacoes_nelder[,5,,])^0.5
+simulacoes_nelder[,11,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
 
-((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) 
-& ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # IC
+simulacoes_nelder[,12,,] <-  simulacoes_nelder[,2,,] - simulacoes_nelder[,4,,]
+simulacoes_nelder[,13,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2
+simulacoes_nelder[,14,,] <- (-simulacoes_nelder[,7,,] / simulacoes_nelder[,5,,])^0.5
+simulacoes_nelder[,15,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
 
-
+simulacoes_nelder
 
 
 
