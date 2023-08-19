@@ -354,15 +354,19 @@ dim(simulacoes_nelder) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-<<<<<<< HEAD
 
-=======
+teste <- array(c(rep(0, 6)), dim = c(4, 3, 2, 4))
 set.seed(9999)
 index_par <- 1
 
-
+teste[1, 1, 2, 4] <- 3
 #BREAKPOINT
->>>>>>> eb4dc0105d987a8ae7aebdd973062335bae5eebb
+
+i <- 1
+index_n <- 1
+index_par <- 2
+h[3]
+class(op$hessian)
 for (i in 1:N) # Número de simulações
 { set.seed(9999)
   for (index_n in 1:10) # Tamanho da amostra
@@ -757,7 +761,7 @@ simulacoes_cg[,,8,9]
 # save(simulacoes_lbfgs, file='simulacoes_lbfgs.RData')
 
 
-<<<<<<< HEAD
+
 # Verificando os resultados das simulações --------------------------------
 
 
@@ -885,4 +889,188 @@ log_lindley_geometrica <- function(x, par) # par[1] será theta, par[2] é o p
   return(ll)
   
 }
->>>>>>> eb4dc0105d987a8ae7aebdd973062335bae5eebb
+
+
+
+# FAZER UM TESTE PRA MAIS UMA COLUNA A QUAL FAZ O VIÉS
+
+simulacoes_neldermead <- array(c(rep(0,7)), dim=c(N,9,9,10))
+for (i in 1:N) # Número de simulações
+{ set.seed(9999)
+  for (index_n in 1:10) # Tamanho da amostra
+  {n <- seq(10, 100, 10)[index_n]
+  
+  for (index_par in 1:9) # Combinação de parâmetros
+  { par <- par_comb[[index_par]]
+  amostra <- rlingley_geom(n, par=par)     # Amostra
+  op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                       fn = log_lindley_geometrica,   # Log-Verossimilhança
+                       x = amostra,                   # Amostra
+                       control = list(fnscale = -1),
+                       method = 'Nelder-Mead',        # Método
+                       hessian = T), T)                  # Calcular a hessiana
+  
+  if(typeof(op) == 'character')
+  { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                         fn = log_lindley_geometrica,   # Log-Verossimilhança
+                         x = amostra,                   # Amostra
+                         control = list(fnscale = -1),
+                         method = 'Nelder-Mead',        # Método
+                         hessian = F)) 
+  
+  }
+  
+  h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+  # Daí se o tipo for character, h vira um vetor de NA
+  
+  
+  
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  # Valores recebe o que queremos dessa bagaça toda,
+  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+  
+  cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
+  
+  simulacoes_nelder[i, ,index_par, index_n] <- valores  # Guarda na tabela
+  
+  }
+  }
+  
+}
+
+
+
+
+simulacoes_neldermead <- array(c(rep(0,7)), dim=c(N,12,9,10))
+
+
+df <- data.frame(Tamanho_Amostra = c(1), par1 = c(1), par2 = c(1), Vies_par1 = c(1), 
+                 Vies_par2 = c(1),
+                 EQM1 = c(1), EQM2 = c(1))
+
+View(df)
+index_par <- 2
+tentativa <- for (i in 1:N) # Número de simulações
+{ set.seed(9999)
+  for (index_n in 1:10) # Tamanho da amostra
+  {n <- seq(10, 100, 10)[index_n]
+  
+    for (index_par in 1:9) # Combinação de parâmetros
+    { par <- par_comb[[index_par]]
+    amostra <- rlingley_geom(n, par=par)     # Amostra
+    op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                         fn = log_lindley_geometrica,   # Log-Verossimilhança
+                         x = amostra,                   # Amostra
+                         control = list(fnscale = -1),
+                         method = 'Nelder-Mead',        # Método
+                         hessian = T), T)                  # Calcular a hessiana
+    
+    if(typeof(op) == 'character')
+    { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+                           fn = log_lindley_geometrica,   # Log-Verossimilhança
+                           x = amostra,                   # Amostra
+                           control = list(fnscale = -1),
+                           method = 'Nelder-Mead',        # Método
+                           hessian = F)) 
+    
+    }
+    
+    h <- try(solve(op$hessian))              # Tenta inverter a hessiana
+    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
+    # Daí se o tipo for character, h vira um vetor de NA
+    
+    
+    vies_par1 <- op$par[1] - par_comb[[index_par]][1]
+    vies_par2 <- op$par[2] - par_comb[[index_par]][2]
+    
+    eqm1 <- h[1] + vies_par1
+    eqm2 <- h[2] + vies_par2
+    
+    valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4], vies_par1, vies_par2, eqm1, eqm2)
+    # Valores recebe o que queremos dessa bagaça toda,
+    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+    
+    cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
+    
+    simulacoes_neldermead[i, ,index_par, index_n] <- valores  # Guarda na tabela
+    
+    
+    
+    }
+  
+  b <- c(ceiling(n), par_comb[[index_par]][1], par_comb[[index_par]][2], vies_par1, vies_par2, eqm1, eqm2)
+  
+  
+  df <- rbind(df, b)
+
+  # A IDEIA AQUI É A SEGUINTE: jogar cada valor de amostra, tudo isso, dentro de um dataframe.
+  # Após isso, fazer um subgrupo pra cada um, e calcular suas respectivas medidas.
+  }
+  
+}
+
+emv.weibull <- function(x, par){
+  fit <- try(fitdist(x, 'weibull', start = list(shape = par[[1]], scale = par[[2]])),
+             
+             silent = TRUE)
+  mles <- fit$estimate
+  ses <- fit$sd
+  if(!is.numeric(ses)) mles <- NA
+  if(!is.numeric(ses)) ses <- NA
+  return(rbind('MLEs' = mles, 'SEs' = ses))
+}
+
+set.seed(1212)
+## Parâmetros
+shapes <- scales <- seq(0.5, 1.5, 0.5) # shape = α, scale = λ
+param <- expand.grid(shapes, scales) # Todas as combinações possíveis dos parâmetros
+## Amostras
+B <- 10000 # Número de simulações
+nmax <- 100 # Maior tamanho de amostra a ser considerado
+enes <- seq(10, nmax, 10) # Tamanhos de amostras
+
+v.shape <- eqm.shape <- matrix(nrow = length(enes), ncol = nrow(param))
+cp.shape <- cl.shape <- matrix(nrow = length(enes), ncol = nrow(param))
+
+## Para o parâmetro de escala (scale = λ)
+v.scale <- eqm.scale <- matrix(nrow = length(enes), ncol = nrow(param))
+cp.scale <- cl.scale <- matrix(nrow = length(enes), ncol = nrow(param))
+
+
+for(i in 1:nrow(param))
+{
+  k <- 1
+  X <- rweibull(nmax * B, shape = param[i,1], scale = param[i,2])
+  X <- matrix(X, ncol = B, nrow = nmax)
+  for(n in enes)
+  {
+    x <- data.frame(X[1:n,])
+    time <- system.time(fit <- sapply(x, emv.weibull, par = param[i,]))
+    v.shape[k,i] <- mean(fit[1,] - param[i,1], na.rm = TRUE)
+    eqm.shape[k,i] <- mean((fit[1,] - param[i,1])^2, na.rm = TRUE)
+    cp.shape[k,i] <- mean(((fit[1,] - qnorm(1 - 0.05/2) * fit[2,]) < param[i,1])
+                          & ((fit[1,] + qnorm(1 - 0.05/2) * fit[2,]) > param[i,1]),
+                          na.rm = TRUE)
+    
+    cl.shape[k,i] <- 2 * qnorm(1 - 0.05/2) * mean(fit[2,], na.rm = TRUE)
+    
+    v.scale[k,i] <- mean(fit[3,] - param[i,2], na.rm = TRUE)
+    eqm.scale[k,i] <- mean((fit[3,] - param[i,2])^2, na.rm = TRUE)
+    cp.scale[k,i] <- mean(((fit[3,] - qnorm(1 - 0.05/2) * fit[4,]) < param[i,2])
+                          & ((fit[3,] + qnorm(1 - 0.05/2) * fit[4,]) > param[i,2]),
+                          na.rm = TRUE)
+    
+    cl.scale[k,i] <- 2 * qnorm(1 - 0.05/2) * mean(fit[4,], na.rm = TRUE)
+    k <- k + 1
+    
+    cat(paste('Combinação:', i), paste('Shape:', param[i,1], 'Scale:', param[i,2]),
+        
+        paste('Tamanho de amostra:', n),
+        paste('Tempo Computacional (em segundos):', round(time[3],2)), "\n")
+    
+  }
+}
+
+shapes <- scales <- seq(0.5, 1.5, 0.5) # shape = α, scale = λ
+param <- expand.grid(shapes, scales)
