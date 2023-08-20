@@ -431,16 +431,16 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinaçõ
 length(par_comb)
 N <- 50000
 
-simulacoes_bfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_bfgs <- array(c(rep(0,6)), dim=c(N,15,9,10))
 simulacoes_bfgs
 
 dim(simulacoes_bfgs) # Serão 50 mil linhas, 8 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 
-
+set.seed(9999)
 for (i in 1:N)                                  # Número de simulações
-{ set.seed(9999)
+{
   for (index_n in 1:10)                         # Tamanho da amostra
   { n <- seq(10, 100, 10)[index_n]
   
@@ -470,9 +470,9 @@ for (i in 1:N)                                  # Número de simulações
     if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invertível, ele guarda o erro em character
     # Daí se o tipo for character, h vira um vetor de NA
     
-    valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+    valores <- c(op$par[1], op$par[2], par[1], par[2], n, -h[1], -h[4], rep(0,8))
     # Valores recebe o que queremos dessa bagaça toda,
-    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+    #theta_estimado, rho_estimado, theta_real, rho_real, n, variância_rho, variância_theta, e os zeros serão substituídos fora do for por vício_theta, eqm_theta, erro padrão_theta, probabilidade de cobertura_theta, vício_rho, eqm_rho, erro padrão_rho, probabilidade de cobertura_rhoa
     
     cat('itr:', i, '-' , valores, '\n')
     simulacoes_bfgs[i, ,index_par, index_n] <- valores
@@ -481,12 +481,30 @@ for (i in 1:N)                                  # Número de simulações
   }
   
 }
-a <- try(solve(asdas))
-a
-a <- try(log('a'), T) # Só pra entender como try funciona
-a
+
 
 simulacoes_bfgs
+
+
+simulacoes_bfgs[,,9,1]
+
+
+simulacoes_bfgs[,8,,]  <-  simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,]     # Vício de rho
+simulacoes_bfgs[,9,,]  <- (simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,])^2 # EQM de rho
+simulacoes_bfgs[,10,,] <- (simulacoes_bfgs[,6,,] / simulacoes_bfgs[,5,,])^0.5
+simulacoes_bfgs[,11,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
+
+simulacoes_bfgs[,12,,] <-  simulacoes_bfgs[,2,,] - simulacoes_bfgs[,4,,]
+simulacoes_bfgs[,13,,]  <- (simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,])^2
+simulacoes_bfgs[,14,,] <- (simulacoes_bfgs[,7,,] / simulacoes_bfgs[,5,,])^0.5
+simulacoes_bfgs[,15,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
+
+simulacoes_bfgs
+
+diagnostico_bfgs <- simulacoes_bfgs[,c(5:15),,]
+
+save(simulacoes_bfgs,  file = 'simulacoes_bfgs.Rdata')
+save(diagnostico_bfgs, file = 'diagnostico_bfgs.Rdata')
 
 
 # Método CG ---------------------------------------------------------------
