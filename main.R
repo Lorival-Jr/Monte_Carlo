@@ -405,17 +405,19 @@ simulacoes_nelder[,,9,1]
 simulacoes_nelder[,8,,]  <-  simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,]     # Vício de rho
 simulacoes_nelder[,9,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2 # EQM de rho
 simulacoes_nelder[,10,,] <- (simulacoes_nelder[,6,,] / simulacoes_nelder[,5,,])^0.5
-simulacoes_nelder[,11,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
+simulacoes_nelder[,11,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,6,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,6,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
 
 simulacoes_nelder[,12,,] <-  simulacoes_nelder[,2,,] - simulacoes_nelder[,4,,]
-simulacoes_nelder[,13,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2
+simulacoes_nelder[,13,,]  <- (simulacoes_nelder[,2,,] - simulacoes_nelder[,4,,])^2
 simulacoes_nelder[,14,,] <- (simulacoes_nelder[,7,,] / simulacoes_nelder[,5,,])^0.5
-simulacoes_nelder[,15,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
+simulacoes_nelder[,15,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,4,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,4,,]) # Prob cobertura rho
 
 simulacoes_nelder
 
+diagnostico_nelder <- simulacoes_nelder[,c(5:15),,]
 
-
+save(simulacoes_nelder,  file = 'simulacoes_nelder.Rdata')
+save(diagnostico_nelder, file = 'diagnostico_nelder.Rdata')
 
 
 # BFGS --------------------------------------------------------------------
@@ -447,7 +449,7 @@ for (i in 1:N)                                  # Número de simulações
     for (index_par in 1:9)                         # Combinação de parâmetros
     { par <- par_comb[[index_par]]
     amostra <- rlingley_geom(n, par=par)           # Amostra
-    op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
+    op      <- try(optim(par = par,            # Chute inicial
                      fn = log_lindley_geometrica,  # Log-Verossimilhança
                      x = amostra,                  # Amostra
                      control = list(fnscale = -1),
@@ -455,7 +457,7 @@ for (i in 1:N)                                  # Número de simulações
                      hessian = T))                  # Calcular a hessiana
     
     if(typeof(op) == 'character')
-    { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+    { op      <- try(optim(par = par, # Chute inicial
                            fn = log_lindley_geometrica,   # Log-Verossimilhança
                            x = amostra,                   # Amostra
                            control = list(fnscale = -1),
@@ -492,12 +494,12 @@ simulacoes_bfgs[,,9,1]
 simulacoes_bfgs[,8,,]  <-  simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,]     # Vício de rho
 simulacoes_bfgs[,9,,]  <- (simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,])^2 # EQM de rho
 simulacoes_bfgs[,10,,] <- (simulacoes_bfgs[,6,,] / simulacoes_bfgs[,5,,])^0.5
-simulacoes_bfgs[,11,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
+simulacoes_bfgs[,11,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,6,,]) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,6,,]) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
 
 simulacoes_bfgs[,12,,] <-  simulacoes_bfgs[,2,,] - simulacoes_bfgs[,4,,]
-simulacoes_bfgs[,13,,]  <- (simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,])^2
+simulacoes_bfgs[,13,,]  <- (simulacoes_bfgs[,2,,] - simulacoes_bfgs[,4,,])^2
 simulacoes_bfgs[,14,,] <- (simulacoes_bfgs[,7,,] / simulacoes_bfgs[,5,,])^0.5
-simulacoes_bfgs[,15,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
+simulacoes_bfgs[,15,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) < simulacoes_bfgs[,4,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) > simulacoes_bfgs[,4,,]) # Prob cobertura rho
 
 simulacoes_bfgs
 
@@ -520,10 +522,10 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinaçõ
 length(par_comb)
 N <- 50000
 
-simulacoes_cg <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_cg <- array(c(rep(0,6)), dim=c(N,15,9,10))
 simulacoes_cg
 
-dim(simulacoes_cg) # Serão 50 mil linhas, 8 colunas e 90 matrizes
+dim(simulacoes_cg) # Serão 50 mil linhas, 15 colunas e 90 matrizes
 # As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 
 set.seed(9999)
@@ -535,7 +537,7 @@ for (i in 1:N)                                  # Número de simulações
   for (index_par in 1:9)                         # Combinação de parâmetros
   { par <- par_comb[[index_par]]
   amostra <- rlingley_geom(n, par=par)           # Amostra
-  op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
+  op      <- try(optim(par = par,            # Chute inicial
                        fn = log_lindley_geometrica,  # Log-Verossimilhança
                        x = amostra,                  # Amostra
                        control = list(fnscale = -1),
@@ -543,7 +545,7 @@ for (i in 1:N)                                  # Número de simulações
                        hessian = T))                  # Calcular a hessiana
   
   if(typeof(op) == 'character')
-  { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
+  { op      <- try(optim(par = par, # Chute inicial
                          fn = log_lindley_geometrica,   # Log-Verossimilhança
                          x = amostra,                   # Amostra
                          control = list(fnscale = -1),
@@ -552,7 +554,7 @@ for (i in 1:N)                                  # Número de simulações
   }
   
   if(typeof(op) == 'character')
-  { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
+  { valores <- c(NA, NA, par[1], par[2], n, NA, NA,  rep(0,8))
   simulacoes_cg[i, ,index_par, index_n] <- valores
   next}
   
@@ -560,7 +562,7 @@ for (i in 1:N)                                  # Número de simulações
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
   # Daí se o tipo for character, h vira um vetor de NA
   
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, -h[1], -h[4], rep(0,8))
   # Valores recebe o que queremos dessa bagaça toda,
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
@@ -574,6 +576,23 @@ for (i in 1:N)                                  # Número de simulações
 
 simulacoes_cg
 
+
+simulacoes_cg[,8,,]  <-  simulacoes_cg[,1,,] - simulacoes_cg[,3,,]     # Vício de rho
+simulacoes_cg[,9,,]  <- (simulacoes_cg[,1,,] - simulacoes_cg[,3,,])^2 # EQM de rho
+simulacoes_cg[,10,,] <- (simulacoes_cg[,6,,] / simulacoes_cg[,5,,])^0.5
+simulacoes_cg[,11,,] <- ((simulacoes_cg[,1,,] - qnorm(1 - 0.05/2) * simulacoes_cg[,6,,]) < simulacoes_cg[,3,,]) & ((simulacoes_cg[,1,,] + qnorm(1 - 0.05/2) * simulacoes_cg[,6,,]) > simulacoes_cg[,3,,]) # Prob cobertura rho
+
+simulacoes_cg[,12,,] <-  simulacoes_cg[,2,,] - simulacoes_cg[,4,,]
+simulacoes_cg[,13,,]  <- (simulacoes_cg[,2,,] - simulacoes_cg[,4,,])^2
+simulacoes_cg[,14,,] <- (simulacoes_cg[,7,,] / simulacoes_cg[,5,,])^0.5
+simulacoes_cg[,15,,] <- ((simulacoes_cg[,2,,] - qnorm(1 - 0.05/2) * simulacoes_cg[,7,,]) < simulacoes_cg[,4,,]) & ((simulacoes_cg[,2,,] + qnorm(1 - 0.05/2) * simulacoes_cg[,7,,]) > simulacoes_cg[,4,,]) # Prob cobertura rho
+
+simulacoes_cg
+
+diagnostico_cg <- simulacoes_cg[,c(5:15),,]
+
+save(simulacoes_cg,  file = 'simulacoes_cg.Rdata')
+save(diagnostico_cg, file = 'diagnostico_cg.Rdata')
 
 # Método L-BFGS-B ---------------------------------------------------------
 
@@ -594,7 +613,7 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinaçõ
 length(par_comb)
 N <- 50000
 
-simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,8,9,10))
+simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,15,9,10))
 simulacoes_lbfgs
 
 
@@ -607,7 +626,7 @@ for (i in 1:N)                                  # Número de simulações
   for (index_par in 1:9)                         # Combinação de parâmetros
   { par <- par_comb[[index_par]]
   amostra <- rlingley_geom(n, par=par)               # Amostra
-  op      <- try(optim(par = c(1.5, 0.3),            # Chute inicial
+  op      <- try(optim(par = par,            # Chute inicial
                        fn = log_lindley_geometrica,  # Log-Verossimilhança
                        x = amostra,                  # Amostra
                        control = list(fnscale = -1),
@@ -618,7 +637,7 @@ for (i in 1:N)                                  # Número de simulações
                        ))                 
   
   if(typeof(op) == 'character')
-  { op      <-  try(optim(par = c(1.5, 0.3),            # Chute inicial
+  { op      <-  try(optim(par = par,            # Chute inicial
                           fn = log_lindley_geometrica,  # Log-Verossimilhança
                           x = amostra,                  # Amostra
                           control = list(fnscale = 1),
@@ -629,7 +648,7 @@ for (i in 1:N)                                  # Número de simulações
   }
   
   if(typeof(op) == 'character')
-  { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
+  { valores <- c(NA, NA, par[1], par[2], n, NA, NA,  rep(0,8))
     simulacoes_lbfgs[i, ,index_par, index_n] <- valores
     next}
   
@@ -637,7 +656,7 @@ for (i in 1:N)                                  # Número de simulações
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
   # Daí se o tipo for character, h vira um vetor de NA
   
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence,  h[1], h[4])
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, -h[1], -h[4], rep(0,8))
   # Valores recebe o que queremos dessa bagaça toda,
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
@@ -651,123 +670,113 @@ for (i in 1:N)                                  # Número de simulações
 
 simulacoes_lbfgs
 
+simulacoes_lbfgs[,8,,]  <-  simulacoes_lbfgs[,1,,] - simulacoes_lbfgs[,3,,]     # Vício de rho
+simulacoes_lbfgs[,9,,]  <- (simulacoes_lbfgs[,1,,] - simulacoes_lbfgs[,3,,])^2 # EQM de rho
+simulacoes_lbfgs[,10,,] <- (simulacoes_lbfgs[,6,,] / simulacoes_lbfgs[,5,,])^0.5
+simulacoes_lbfgs[,11,,] <- ((simulacoes_lbfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_lbfgs[,6,,]) < simulacoes_lbfgs[,3,,]) & ((simulacoes_lbfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_lbfgs[,6,,]) > simulacoes_lbfgs[,3,,]) # Prob cobertura rho
+
+simulacoes_lbfgs[,12,,] <-  simulacoes_lbfgs[,2,,] - simulacoes_lbfgs[,4,,]
+simulacoes_lbfgs[,13,,]  <- (simulacoes_lbfgs[,2,,] - simulacoes_lbfgs[,4,,])^2
+simulacoes_lbfgs[,14,,] <- (simulacoes_lbfgs[,7,,] / simulacoes_lbfgs[,5,,])^0.5
+simulacoes_lbfgs[,15,,] <- ((simulacoes_lbfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_lbfgs[,7,,]) < simulacoes_lbfgs[,4,,]) & ((simulacoes_lbfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_lbfgs[,7,,]) > simulacoes_lbfgs[,4,,]) # Prob cobertura rho
+
+simulacoes_lbfgs
+
+diagnostico_lbfgs <- simulacoes_lbfgs[,c(5:15),,]
+
+save(simulacoes_lbfgs,  file = 'simulacoes_lbfgs.Rdata')
+save(diagnostico_lbfgs, file = 'diagnostico_lbfgs.Rdata')
 
 
-# Método SANN -------------------------------------------------------------
+# SANN --------------------------------------------------------------------
 
-#install.packages("maxLik")
-library(maxLik)
+library(LambertW)
+amostra <- rlingley_geom(10000, c(5, 0.8))
 
-# Esse é o pacote que o professor falou que era mais otimizado pro SANN
-
-# https://cran.r-project.org/web/packages/maxLik/maxLik.pdf                 pag 17
-
-help("maxSANN")
-
-# Pra função do maxlik precisa alterar a LL
-log_lindley_geometrica <- function(xi,theta) # par[1] será theta, par[2] é o p
-{  #Restrições: par[1] > 0 e 0 < par[2] < 1
-  
-  n  <- length(xi)
-  f1 <- 2*n*log(theta[1])
-  f2 <- n*log(1-theta[2])
-  f3 <- sum(log(1+xi))
-  f4 <- sum(-theta[1]*xi)
-  f5 <- n*log(theta[1]+1)
-  f6 <- 2*sum(log(1-theta[2]*(1+theta[1]*xi/(theta[1]+1))*exp(-xi*theta[1])))
-  
-  ll <- f1 + f2 + f3 + f4 - f5 - f6
-  return(ll)
-  
-}
-set.seed(9999)
+optim(par = c(1, 0.3), fn = log_lindley_geometrica, x = amostra, control = list(fnscale = -1))
+#Restrições: par[1] > 0 e 0 < par[2] < 1
 
 
-# 1 tentativa de otimização
-x <- rlingley_geom(1000, c(3,0.2))
-
-A <- matrix(c(0, 1, 1,0), 2, 2)           # Restrições dos parâmetros
-B <- c(-0.0001, 0.0001)                   # 0theta + 1rho >= 0.0001      e 1theta + 0rho >=0
-
-sann <- maxLik(log_lindley_geometrica,
-       start = c(2, 0.3),
-       xi=rlingley_geom(1000, c(3,x)),
-       method = 'SANN',
-       constraints = list(ineqA=A, ineqB=B))
-
-summary(sann)
-str(sann)
-# O ajuste é horroroso
-
-
-par_comb <- list(c(1.5, 0.1), c(1.5, 0.5), c(1.5, 0.8), # Ele pede 9 combinações de parâmetros
-                 c(  2, 0.1), c(  2, 0.5), c(  2, 0.8),
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8),   # Ele pede 9 combinações de parâmetros
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),   # Daí são as combinações
                  c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
 length(par_comb)
-N <- 50000
+N <- 50000                                                # O N de simulações pedido é 50000
 
-simulacoes_sann <- array(c(rep(0,6)), dim=c(N,8,9,10))
-simulacoes_sann
+simulacoes_sann <- array(c(rep(0,6)), dim=c(N,15,9,10))  # Esse array vai guardar os resultados
+simulacoes_sann                                         # Basicamente são 90 matrizes dentro de um array
 
-A <- matrix(c(0, 1, 1,0), 2, 2)           # Restrições dos parâmetros
-B <- c(-0.0001, 0.0001)                   # 0theta + 1rho >= 0.0001      e 1theta + 0rho >=0
+dim(simulacoes_sann) # Serão 50 mil linhas, 15 colunas e 90 matrizes
 
-help(optim)
-
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
 set.seed(9999)
-for (i in 1:N)                                  # Número de simulações
-{
-  for (index_n in 1:10)                         # Tamanho da amostra
-  { n <- seq(10, 100, 10)[index_n]
+for (i in 1:N) # Número de simulações
+{ 
+  for (index_n in 1:10) # Tamanho da amostra
+  {n <- seq(10, 100, 10)[index_n]
   
-  for (index_par in 1:9)                         # Combinação de parâmetros
+  for (index_par in 1:9) # Combinação de parâmetros
   { par <- par_comb[[index_par]]
-  amostra <- rlingley_geom(n, par=par)               # Amostra
-  op      <- try(maxLik(log_lindley_geometrica,
-                        start = c(1.1, 0.3),
-                        xi=amostra,
-                        method = 'SANN',
-                        constraints = list(ineqA=A, ineqB=B)))             
+  amostra <- rlingley_geom(n, par=par)     # Amostra
+  op      <- try(optim(par = par, # Chute inicial
+                       fn = log_lindley_geometrica,   # Log-Verossimilhança
+                       x = amostra,                   # Amostra
+                       control = list(fnscale = -1),
+                       method = 'SANN',        # Método
+                       hessian = T), T)                  # Calcular a hessiana
   
   if(typeof(op) == 'character')
-  { op      <-  try()                   
+  { op      <- try(optim(par = par, # Chute inicial
+                         fn = log_lindley_geometrica,   # Log-Verossimilhança
+                         x = amostra,                   # Amostra
+                         control = list(fnscale = -1),
+                         method = 'SANN',        # Método
+                         hessian = F)) 
+  
   }
   
   if(typeof(op) == 'character')
-  { valores <- c(NA, NA, par[1], par[2], n, 99, NA, NA)
+  { valores <- c(NA, NA, par[1], par[2], n,  NA, NA, rep(0,8))
+  simulacoes_cg[i, ,index_par, index_n] <- valores
   next}
+  
+  
   
   h <- try(solve(op$hessian))              # Tenta inverter a hessiana
   if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
   # Daí se o tipo for character, h vira um vetor de NA
   
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
+  valores <- c(op$par[1], op$par[2], par[1], par[2], n, -h[1], -h[4], rep(0,8))
   # Valores recebe o que queremos dessa bagaça toda,
-  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+  # theta_estimado, rho_estimado, theta_real, rho_real, n, variância_rho, variância_theta, e os zeros serão substituídos fora do for por vício_theta, eqm_theta, erro padrão_theta, probabilidade de cobertura_theta, vício_rho, eqm_rho, erro padrão_rho, probabilidade de cobertura_rho
   
-  cat('itr:', i, '-' , valores, '\n')
-  simulacoes_sann[i, ,index_par, index_n] <- valores
+  cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
+  
+  simulacoes_sann[i, ,index_par, index_n] <- valores  # Guarda na tabela
   
   }
   }
   
 }
 
+simulacoes_sann #theta_estimado, rho_estimado, theta_real, rho_real, n, variância_rho, variância_theta, e os zeros serão substituídos fora do for por vício_theta, eqm_theta, erro padrão_theta, probabilidade de cobertura_theta, vício_rho, eqm_rho, erro padrão_rho, probabilidade de cobertura_rho
+
+
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+simulacoes_sann[,,9,1]
+
+
+simulacoes_sann[,8,,]  <-  simulacoes_sann[,1,,] - simulacoes_sann[,3,,]     # Vício de rho
+simulacoes_sann[,9,,]  <- (simulacoes_sann[,1,,] - simulacoes_sann[,3,,])^2 # EQM de rho
+simulacoes_sann[,10,,] <- (simulacoes_sann[,6,,] / simulacoes_sann[,5,,])^0.5
+simulacoes_sann[,11,,] <- ((simulacoes_sann[,1,,] - qnorm(1 - 0.05/2) * simulacoes_sann[,6,,]) < simulacoes_sann[,3,,]) & ((simulacoes_sann[,1,,] + qnorm(1 - 0.05/2) * simulacoes_sann[,6,,]) > simulacoes_sann[,3,,]) # Prob cobertura rho
+
+simulacoes_sann[,12,,] <-  simulacoes_sann[,2,,] - simulacoes_sann[,4,,]
+simulacoes_sann[,13,,]  <- (simulacoes_sann[,2,,] - simulacoes_sann[,4,,])^2
+simulacoes_sann[,14,,] <- (simulacoes_sann[,7,,] / simulacoes_sann[,5,,])^0.5
+simulacoes_sann[,15,,] <- ((simulacoes_sann[,1,,] - qnorm(1 - 0.05/2) * simulacoes_sann[,7,,]) < simulacoes_sann[,4,,]) & ((simulacoes_sann[,1,,] + qnorm(1 - 0.05/2) * simulacoes_sann[,7,,]) > simulacoes_sann[,4,,]) # Prob cobertura rho
+
 simulacoes_sann
-
-# Salvando as simulaçoes
-
-simulacoes_bfgs
-simulacoes_cg
-simulacoes_nelder
-simulacoes_lbfgs
-simulacoes_cg[,,8,9]
-# save(simulacoes_bfgs, file='simulacoes_bfgs.RData')
-# save(simulacoes_cg, file='simulacoes_cg.RData')
-# save(simulacoes_nelder, file='simulacoes_nelder.RData')
-# save(simulacoes_lbfgs, file='simulacoes_lbfgs.RData')
-
-
 
 # Verificando os resultados das simulações --------------------------------
 
@@ -781,314 +790,69 @@ thetas_nelder <- apply(simulacoes_nelder[,1,1,] , MARGIN = 2, FUN= mean) # A mé
 thetas_nelder
 plot(thetas_nelder, type = 'l', ylim = c(0.45, 0.70))
 abline(h=0.5, col = 'red')
-=======
 
+# theta
+# 08 - vicio; 09 - eqm; 10 - erro padrão; 11 - prob de cobertura
 
+# rho
+# 12 - vicio; 13 - eqm; 14 - erro padrão; 15 - prob de cobertura
 
-
-
-# Método SANN -------------------------------------------------------------
-
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), 
-                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
-                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
-length(par_comb)
-N <- 50000
-
-simulacoes_sann <- array(c(rep(0,6)), dim=c(N,8,9,10))
-
-
-
-
-
-
-
-f1 <- function(par, xs) {
+# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
+load('simulacoes_cg.Rdata')
+simulacoes_cg[,,,1]
+for(i in 1:10){
+  vicio_theta <- mean(simulacoes_cg[,8,,i],na.rm=T)
+  eqm_theta <- mean(simulacoes_cg[,9,,i],na.rm=T)
+  erro_theta <- mean(simulacoes_cg[,10,,i],na.rm=T)
+  prob_theta <- mean(simulacoes_cg[,11,,i],na.rm=T)
   
-  n  <- length(xs)
-  f1 <- 2*n*log(par[1])
-  f2 <- n*log(1-par[2])
-  f3 <- sum(log(1+xs))
-  f4 <- sum(-par[1]*xs)
-  f5 <- n*log(par[1]+1)
-  f6 <- 2*sum(log(1-par[2]*(1+par[1]*xs/(par[1]+1))*exp(-xs*par[1])))
+  vicio_rho <- mean(simulacoes_cg[,12,,i],na.rm=T)
+  eqm_rho <- mean(simulacoes_cg[,13,,i],na.rm=T)
+  erro_rho <- mean(simulacoes_cg[,14,,i],na.rm=T)
+  prob_rho <- mean(simulacoes_cg[,15,,i],na.rm=T)
   
-  ll <- f1 + f2 + f3 + f4 - f5 - f6
-  return(ll)
+  valores <- c(vicio_theta, eqm_theta, erro_theta, prob_theta, vicio_rho, eqm_rho, erro_rho, prob_rho, i*10)
+  if(i == 1) 
+  {
+    resultados_cg <- data.frame('vicio_t'= vicio_theta, 'eqm_t'= eqm_theta, 'erro_t' = erro_theta,  'prob_t' = prob_theta,
+                                'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho, 'erro_r' = erro_rho, 'prob_r' = prob_rho, 'n' = i*10)
+  }
+  else{
+    resultados_cg <-rbind(resultados_cg, valores)
+  }
+ 
+ 
+}
+resultados_cg
+
+library(ggplot2)
   
-  
+uni_lineplot <- function(var, banco, simulacao,  ylab = '', xlab = 'Tamanho da amostra')
+  {
+  if(var == 'prob_t' || var == 'prob_r')
+  {
+    grafico <- ggplot(banco,aes(x= n, y= .data[[var]])) +
+      geom_line()+ 
+      geom_point()+ 
+      geom_hline(yintercept=0.95, col = 'red')+
+      theme_minimal()+
+      xlab(xlab)+
+      ylab(ylab)
+  }
+  else{
+   grafico <- ggplot(banco,aes(x= n, y= .data[[var]])) +
+    geom_line()+ 
+    geom_point()+ 
+    geom_hline(yintercept=0, col = 'red')+
+    theme_minimal()+
+    xlab(xlab)+
+    ylab(ylab)}
+   
+  print(grafico)
+  arquivo <- paste0('img/', simulacao, '_', var, '.jpg')
+  ggsave(arquivo)
 }
 
-
-# sa <- function(f, N, rho, t0, theta0) {
-#   
-#   y <- NULL
-#   
-#   theta.old <- c()
-#   theta.old[1] <- theta0[1]
-#   theta.old[2] <- theta0[2]
-#   
-#   repeat {
-#     
-#     s <- 0
-#     
-#     for (k in 1:N) {
-#       f.old <- f(theta.old, xs)
-#       theta.new <- runif(1, -1, 1) + t
-#     }
-#     
-#   }
-#   
-# }
-
-
-# GABRIEL FAZENDO
-library(maxLik)
-?maxLik
-for (i in 1:N) {
-  for (index_n in 1:10) {
-    
-    
-    n <- seq(1, 100, 10)[index_n]
-    
-    for (index_par in 1:9) {
-      
-      par <- par_comb[[index_par]]
-      amostra <- rlingley_geom(n, par=par)
-      op <- try(maxLik(logLik = log_lindley_geometrica, start = c(1.5, 0.3), 
-                       method = 'SANN', x = amostra))
-      
-      
-      
-    }
-    
-    h <- try(solve(op$hessian))              # Tenta inverter a hessiana
-    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}
-    
-    valores <- c(coef(op)[1], coef(op)[2], par[1], par[2], n, 1,  h[1], h[4])
-    # Valores recebe o que queremos dessa bagaça toda,
-    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-    
-    cat('itr:', i, '-' , valores, '\n')
-    simulacoes_lbfgs[i, ,index_par, index_n] <- valores
-  }
-  
-  
-}
-
-log_lindley_geometrica <- function(x, par) # par[1] será theta, par[2] é o p
-{  #Restrições: par[1] > 0 e 0 < par[2] < 1
-  
-  
-  # 2*n*log(par[1]) + n*log(1-par[2]) + sum(log(1+x)) + 
-  #   sum(log(exp(-theta[1]*x))) - n*log(par[1] + 1) -
-  #   2*sum(log(1-theta[2]*(1+(theta[1]*x))))
-  
-  n  <- length(x)
-  f1 <- 2*n*log(par[1])
-  f2 <- n*log(1-par[2])
-  f3 <- sum(log(1+x))
-  f4 <- sum(-par[1]*x)
-  f5 <- n*log(par[1]+1)
-  f6 <- 2*sum(log(1-par[2]*(1+par[1]*x/(par[1]+1))*exp(-x*par[1])))
-  
-  ll <- f1 + f2 + f3 + f4 - f5 - f6
-  return(ll)
-  
-}
-
-
-
-# FAZER UM TESTE PRA MAIS UMA COLUNA A QUAL FAZ O VIÉS
-
-simulacoes_neldermead <- array(c(rep(0,7)), dim=c(N,9,9,10))
-for (i in 1:N) # Número de simulações
-{ set.seed(9999)
-  for (index_n in 1:10) # Tamanho da amostra
-  {n <- seq(10, 100, 10)[index_n]
-  
-  for (index_par in 1:9) # Combinação de parâmetros
-  { par <- par_comb[[index_par]]
-  amostra <- rlingley_geom(n, par=par)     # Amostra
-  op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
-                       fn = log_lindley_geometrica,   # Log-Verossimilhança
-                       x = amostra,                   # Amostra
-                       control = list(fnscale = -1),
-                       method = 'Nelder-Mead',        # Método
-                       hessian = T), T)                  # Calcular a hessiana
-  
-  if(typeof(op) == 'character')
-  { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
-                         fn = log_lindley_geometrica,   # Log-Verossimilhança
-                         x = amostra,                   # Amostra
-                         control = list(fnscale = -1),
-                         method = 'Nelder-Mead',        # Método
-                         hessian = F)) 
-  
-  }
-  
-  h <- try(solve(op$hessian))              # Tenta inverter a hessiana
-  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
-  # Daí se o tipo for character, h vira um vetor de NA
-  
-  
-  
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
-  # Valores recebe o que queremos dessa bagaça toda,
-  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-  
-  cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
-  
-  simulacoes_nelder[i, ,index_par, index_n] <- valores  # Guarda na tabela
-  
-  }
-  }
-  
-}
-
-
-
-
-
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), 
-                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
-                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
-
-
-
-install.packages('fitdistrplus')
-
-library(fitdistrplus)
-
-
-simulacoes_neldermead <- array(c(rep(0,7)), dim=c(N,12,9,10))
-
-
-df <- data.frame(Tamanho_Amostra = c(1), par1 = c(1), par2 = c(1), Vies_par1 = c(1), 
-                 Vies_par2 = c(1),
-                 EQM1 = c(1), EQM2 = c(1))
-
-View(df)
-index_par <- 2
-tentativa <- for (i in 1:N) # Número de simulações
-{ set.seed(9999)
-  for (index_n in 1:10) # Tamanho da amostra
-  {n <- seq(10, 100, 10)[index_n]
-  
-    for (index_par in 1:9) # Combinação de parâmetros
-    { par <- par_comb[[index_par]]
-    amostra <- rlingley_geom(n, par=par)     # Amostra
-    op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
-                         fn = log_lindley_geometrica,   # Log-Verossimilhança
-                         x = amostra,                   # Amostra
-                         control = list(fnscale = -1),
-                         method = 'Nelder-Mead',        # Método
-                         hessian = T), T)                  # Calcular a hessiana
-    
-    if(typeof(op) == 'character')
-    { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
-                           fn = log_lindley_geometrica,   # Log-Verossimilhança
-                           x = amostra,                   # Amostra
-                           control = list(fnscale = -1),
-                           method = 'Nelder-Mead',        # Método
-                           hessian = F)) 
-    
-    }
-    
-    h <- try(solve(op$hessian))              # Tenta inverter a hessiana
-    if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
-    # Daí se o tipo for character, h vira um vetor de NA
-    
-    
-    vies_par1 <- op$par[1] - par_comb[[index_par]][1]
-    vies_par2 <- op$par[2] - par_comb[[index_par]][2]
-    
-    eqm1 <- h[1] + vies_par1
-    eqm2 <- h[2] + vies_par2
-    
-    valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4], vies_par1, vies_par2, eqm1, eqm2)
-    # Valores recebe o que queremos dessa bagaça toda,
-    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-    
-    cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
-    
-    simulacoes_neldermead[i, ,index_par, index_n] <- valores  # Guarda na tabela
-    
-    
-    
-    }
-  
-  b <- c(ceiling(n), par_comb[[index_par]][1], par_comb[[index_par]][2], vies_par1, vies_par2, eqm1, eqm2)
-  
-  
-  df <- rbind(df, b)
-
-  # A IDEIA AQUI É A SEGUINTE: jogar cada valor de amostra, tudo isso, dentro de um dataframe.
-  # Após isso, fazer um subgrupo pra cada um, e calcular suas respectivas medidas.
-  }
-  
-}
-
-
-
-
-
-
-
-
-simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,16,9,10))
-tentativa <- for (i in 1:N) # Número de simulações
-{ set.seed(9999)
-  for (index_n in 1:10) # Tamanho da amostra
-  {n <- seq(10, 100, 10)[index_n]
-  
-  for (index_par in 1:9) # Combinação de parâmetros
-  { par <- par_comb[[index_par]]
-  amostra <- rlingley_geom(n, par=par)     # Amostra
-  op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
-                       fn = log_lindley_geometrica,   # Log-Verossimilhança
-                       x = amostra,                   # Amostra
-                       control = list(fnscale = -1),
-                       method = 'Nelder-Mead',        # Método
-                       hessian = T), T)                  # Calcular a hessiana
-  
-  if(typeof(op) == 'character')
-  { op      <- try(optim(par = c(1.5, 0.3), # Chute inicial
-                         fn = log_lindley_geometrica,   # Log-Verossimilhança
-                         x = amostra,                   # Amostra
-                         control = list(fnscale = -1),
-                         method = 'Nelder-Mead',        # Método
-                         hessian = F)) 
-  
-  }
-  
-  h <- try(solve(op$hessian))              # Tenta inverter a hessiana
-  if(typeof(h) == 'character') {h <- c(NA, NA, NA, NA)}  # Se não for invetível, ele guarda o erro em character
-  # Daí se o tipo for character, h vira um vetor de NA
-  
-  valores <- c(op$par[1], op$par[2], par[1], par[2], n, op$convergence, h[1], h[4])
-  # Valores recebe o que queremos dessa bagaça toda,
-  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-  
-  cat('itr:', i, '-' , valores, '\n')    # Inútil, é só pra vc ficar vendo oq ta acontecendo
-  
-  simulacoes_nelder[i, ,index_par, index_n] <- valores  # Guarda na tabela
-  
-  }
-  }
-  
-}
-
-save(tentativa, file = 'neldermead.Rdata')
-
-
-simulacoes_nelder[, 7:8, ,] <- -simulacoes_nelder[, 7:8, ,] 
-sum(simulacoes_nelder[, 7:8, , ] < 0, na.rm = T)
-
-#install.packages('microbenchmark')
-results <- microbenchmark::microbenchmark(tentativa, times = 1000)
-
-library(LambertW)
-
-simulacoes_nelder[, 9, ,] <- simulacoes_nelder[, 1, , ] - simulacoes_nelder[, 3, ,]
-nova_coluna <- simulacoes_nelder[, 1, , ] - simulacoes_nelder[, 3, ,]
+uni_lineplot('vicio_t', resultados_cg, 'cg')
+uni_lineplot('eqm_t', resultados_cg, 'cg')
+uni_lineplot('prob_t', resultados_cg, 'cg')
