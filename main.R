@@ -42,7 +42,7 @@ qlindley_geom <- function(u, par)
   return(quantile)
 }
 
-rlingley_geom <- function(n, par)
+rlindley_geom <- function(n, par)
 {
   
   u <- runif(n, min = 0, max = 1) 
@@ -227,27 +227,93 @@ dthetarho(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
 
 U         <- function(x, par)
 {    # Vetor escore é um vetor que contém a primeira derivada em relação a cada parâmetro, nesse caso é a derivada primeira em relação a theta, derivada primeira em relação a rho
-  
+  theta <- par[1]
+  rho   <- par[2]
   n       <- length(x)
   
-  dtheta1 <- (((2*x^2+2*x)*(par[1]^2)+(2*x^2+4*x)*par[1])*par[2])
-  dtheta2 <- (((x+1)*par[1]^2+(x+2)*par[1]+1)*par[2]+(-(par[1]^2)-2*par[1]-1)*exp(x*par[1]))
-  dtheta  <- 2*n/par[1] - n/(par[1] + 1) - sum(x) + sum(dtheta1/dtheta2)
+  dtheta  <- 		  -sum(((2*(x*((x*theta)/(theta+1)+1)*exp(-(x*theta))*rho-(x/(theta+1)-(x*theta)/(theta+1)^2)*exp(-(x*theta))*rho))/(1-((x*theta)/(theta+1)+1)*exp(-(x*theta))*rho)))+n*(2/theta-1/(theta+1))-sum(x)
   
-  drho1   <- ((x*par[1])/(par[1]+1)+1)
-  drho2   <- exp(-(x*par[1]))
-  drho    <- -n/(1- par[2]) + sum((2*drho1*drho2)/(1 - drho1*drho2*par[2]))
+  
+  
+  drho1   <- ((x*theta)/(theta+1)+1)
+  drho2   <- exp(-(x*theta))
+  drho    <- sum((2*drho1*drho2)/(1-drho1*drho2*rho))-n/(1-rho)
   
   vetor   <- matrix(nrow = 2, c(dtheta, drho))
- 
+  
   return(vetor)
 }
 
 set.seed(123)
-U(rlingley_geom(1000, 3, 0.5), c(3, 0.5))
+U(x, c(2,0.3))
 
 
-### Implementação da matriz de Informação de Fisher - Jacobiano
+
+
+dtheta2   <- function(x, par)           # Derivada segunda da log-verossimilhança em relação a theta
+{
+  n       <- length(x)
+  theta   <- par[1]
+  rho     <- par[2]
+  
+  e      <- exp(-x*theta)
+  p1     <- x/(par[1]+1)
+  p2     <- p1*theta
+  p3     <- p2/(theta + 1)
+  
+  d1      <- sum((2*(x*(p2+1)*e*par[2]-(p1-p3)*e*par[2])^2)/(1-(p2+1)*e*par[2])^2)
+  d2      <- -sum((2*(-(x^2*(p2+1)*e*par[2]))+2*x*(p1-p3)*e*par[2]))
+  d3      <- -sum(((2*x*par[1])/(par[1]+1)^3-(2*x)/(par[1]+1)^2*e*par[2])/(1-(p2+1)*e*par[2]))+n/(par[1]+1)^2-(2*n)/par[1]^2
+  dd      <-  d1 + d2 + d3
+  
+  return(dd)
+}
+set.seed(123)
+dtheta2(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
+
+# Rho-Rho
+
+drho2     <- function(x, par)          # Derivada segunda da log-verossimilhança em relação a rho
+{
+  n       <- length(x)
+  theta   <- par[1]
+  rho     <- par[2]
+  
+  
+  p1      <- ((x*theta)/(theta+1)+1)
+  
+  dd      <- sum((2*p1^2*exp(-(2*x*par[1])))/(1-p1*exp(-(x*par[1]))*par[2])^2)-n/(1-par[2])^2
+  
+  return(dd) 
+}
+set.seed(123)
+drho2(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
+
+# Theta-Rho
+
+dthetarho <- function(x, par)          # Derivada segunda da log-verossimilhança em relação a theta e depois a rho
+{
+  theta   <- par[1]
+  rho     <- par[2]
+  
+  e  <- exp(-(x*par[1]))
+  
+  p0 <- (x)/(theta + 1)
+  p1 <- p0*theta + 1
+  p2 <- p0*theta/(theta + 1)
+  d1 <- -sum(((2*(x*p1*e-(x/(par[1]+1)-p2)*e))/(1-p1*e*par[2])))
+  d2 <- -sum((2*p1*e*(x*p1*e*par[2]-(x/(par[1]+1)-p2)*e*par[2]))/(1-p1*e*par[2])^2)
+  dd <-  d1 + d2
+  
+  
+  
+  
+  return(dd)
+}
+set.seed(123)
+dthetarho(rlingley_geom(1000, c(3,0.5)), par = c(3, 0.5))
+
+
 
 J <- function(x, par)
 {
@@ -258,63 +324,139 @@ J <- function(x, par)
   jacobiano[2,1] <- jacobiano[1,2]
   jacobiano[2,2] <- drho2(x, par)
   
-  return(-jacobiano)
+  return(jacobiano)
   
 }
 
-J(rlingley_geom(1000, 0.3, 0.5), c(0.3, 0.5))
-
-
-### Função Escore de Fisher 
-
-escore_f <- function(x, par, itr, erro = 0.00001)     # Comecei a implementar uma função, mas tá explodindo
-{                                                     # daí to testando fora da função, logo a baixo
-  par <- matrix(par, nrow = 2)
+J <- function(x, par)
+{
+  theta   <- par[1]
+  rho     <- par[2]
+  n       <- length(x)
   
-  i <- 1
+  e  <- exp(-(x*theta))
   
-  while(i < itr)
-    
-  {
-    i <- i + 1
-    
-    par_novo <- par - solve(J(x, par)) %*% U(x, par)
-    
-    if(max(abs(U(x, par) - U(x, par))) < erro) break # Critério de parada
-    
-    par <- par_novo
-    
-    a <- cat('Iteração:', i, 'shape:', par_novo[1], 'scale:', par_novo[2], "\n")
-    
-  }
-  return(a)
+  p0 <- (x)/(theta + 1)
+  p1 <- p0*theta + 1
+  p2 <- p0*theta/(theta + 1)
+  d1 <- -sum(((2*(x*p1*e-(x/(par[1]+1)-p2)*e))/(1-p1*e*par[2])))
+  d2 <- -sum((2*p1*e*(x*p1*e*par[2]-(x/(par[1]+1)-p2)*e*par[2]))/(1-p1*e*par[2])^2)
+  
+  dthetarho <- d1 + d2 
+  ###################
+  
+  drho2      <- sum((2*p1^2*exp(-(2*x*par[1])))/(1-p1*exp(-(x*par[1]))*par[2])^2)-n/(1-par[2])^2
+  ###################
+  
+  d1      <- sum((2*(x*(p1)*e*par[2]-(p0-p2)*e*par[2])^2)/(1-(p1)*e*par[2])^2)
+  d2      <- -sum((2*(-(x^2*(p1)*e*par[2]))+2*x*(p0-p2)*e*par[2]))
+  d3      <- -sum(((2*x*par[1])/(par[1]+1)^3-(2*x)/(par[1]+1)^2*e*par[2])/(1-(p1)*e*par[2]))+n/(par[1]+1)^2-(2*n)/par[1]^2
+  dtheta2 <-  d1 + d2 + d3
+  
+  jacobiano      <- matrix(nrow = 2, ncol = 2)
+  jacobiano[1,1] <- dtheta2
+  jacobiano[1,2] <- dthetarho
+  jacobiano[2,1] <- jacobiano[1,2]
+  jacobiano[2,2] <- drho2
+  
+  return(jacobiano)
   
 }
+set.seed(9999)
+J(rlingley_geom(1000, c(2,0.5)), c(2,0.5))
+J(rlingley_geom(1000, c(0.3, 0.5)), c(0.3, 0.5))
 
 
 
-par <- matrix(c(6, 0.3), nrow = 2)                # Os valores que o Newton-raphson precisa
-x <-  rlingley_geom(1000, c(4, 0.1))
+
+
+par <- matrix(c(6, 0.5), nrow = 2)                # Os valores que o Newton-raphson precisa
+set.seed(9999)
+x <-  rlingley_geom(50000, c(6, 0.5))
 itr <- 5000
-erro <- 0.00001
+erro <- 0.0000001
 i <- 1
 
-while(i < itr)                                    # Método de Newton-Raphson, mas tá explodindo
-{                                                 # Erro pode ser nas derivas, na verossimilhança 
-                                                  # ou na própria implementação do método
-  i <- i + 1
-  
-  par_novo <- par - solve(J(x, par)) %*% U(x, par)
+itr <- 500
+erro <- 10e-6
+i <- 1
 
-  if(max(abs(U(x, par_novo) - U(x, par))) < erro) break # Critério de parada
- 
-  par <- par_novo
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+length(par_comb)
+N <- 50000
+
+simulacoes_newton <- array(c(rep(0,6)), dim=c(N,15,9,10))
+simulacoes_newton
+
+set.seed(9999)
+set.seed(9999)
+for (i in 1:N)                                  # Número de simulações
+{ 
+  for (index_n in 1:10)                         # Tamanho da amostra
+  { n <- seq(10, 100, 10)[index_n]
   
-  cat('Iteração:', i, 'theta:', par_novo[1], 'rho:', par_novo[2], "\n")
-  
-  
+  for (index_par in 1:9)                         # Combinação de parâmetros
+  { 
+    par0 <- par_comb[[index_par]]
+    amostra <- rlingley_geom(n, par=par0)               # Amostra
+    
+    iteracao <- 1
+    
+    par <- par0 
+    while(iteracao < itr)                                    # Método de Newton-Raphson, mas tá explodindo
+    {                                                 # Erro pode ser nas derivas, na verossimilhança 
+      # ou na própria implementação do método
+      iteracao <- iteracao + 1
+      
+      variancia <- try(- solve(J(amostra, par)),F)
+      if(typeof(variancia) == 'character') {variancia <- c(NA, NA); break}
+      
+      par_novo <- par + variancia %*% U(amostra, par)
+      
+      if(is.nan(U(amostra, par_novo))){break}
+      
+      if(max(abs(U(amostra, par_novo) - U(amostra, par))) < erro) break # Critério de parada
+      
+      par <- par_novo
+      
+      #cat('Iteração:', i, 'theta:', par_novo[1], 'rho:', par_novo[2], "\n")
+      
+      
+      
+    }
+    
+    valores <- c(par_novo[1], par_novo[2], par0[1], par0[2], n, variancia[1], variancia[4], rep(0,8))
+    # Valores recebe o que queremos dessa bagaça toda,
+    # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
+    
+    cat('itr:', i, '-' , valores, '\n')
+    simulacoes_newton[i, ,index_par, index_n] <- valores
+    
+  }
+  }
   
 }
+
+
+simulacoes_newton[,8,,]  <-  simulacoes_newton[,1,,] - simulacoes_newton[,3,,]     # Vício de rho
+simulacoes_newton[,9,,]  <- (simulacoes_newton[,1,,] - simulacoes_newton[,3,,])^2 # EQM de rho
+simulacoes_newton[,10,,] <- (simulacoes_newton[,6,,])^0.5
+simulacoes_newton[,11,,] <- ((simulacoes_newton[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,6,,])) < simulacoes_newton[,3,,]) & ((simulacoes_newton[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,6,,])) > simulacoes_newton[,3,,]) # Prob cobertura rho
+
+simulacoes_newton[,12,,] <-  simulacoes_newton[,2,,] - simulacoes_newton[,4,,]
+simulacoes_newton[,13,,]  <- (simulacoes_newton[,2,,] - simulacoes_newton[,4,,])^2
+simulacoes_newton[,14,,] <- (simulacoes_newton[,7,,])^0.5
+simulacoes_newton[,15,,] <- ((simulacoes_newton[,2,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,7,,])) < simulacoes_newton[,4,,]) & ((simulacoes_newton[,2,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,7,,])) > simulacoes_newton[,4,,]) # Prob cobertura rho
+
+simulacoes_newton
+
+diagnostico_newton <- simulacoes_newton[,c(5:15),,]
+
+save(simulacoes_newton,  file = 'simulacoes_newton.Rdata')
+save(diagnostico_newton, file = 'diagnostico_newtonr.Rdata')
 
 ### OPTIM - Simulações
 
@@ -404,13 +546,13 @@ simulacoes_nelder[,,9,1]
 
 simulacoes_nelder[,8,,]  <-  simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,]     # Vício de rho
 simulacoes_nelder[,9,,]  <- (simulacoes_nelder[,1,,] - simulacoes_nelder[,3,,])^2 # EQM de rho
-simulacoes_nelder[,10,,] <- (simulacoes_nelder[,6,,] / simulacoes_nelder[,5,,])^0.5
-simulacoes_nelder[,11,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,6,,]) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,6,,]) > simulacoes_nelder[,3,,]) # Prob cobertura rho
+simulacoes_nelder[,10,,] <- (simulacoes_nelder[,6,,])^0.5
+simulacoes_nelder[,11,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_nelder[,6,,])) < simulacoes_nelder[,3,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_nelder[,6,,])) > simulacoes_nelder[,3,,]) # Prob cobertura rho
 
 simulacoes_nelder[,12,,] <-  simulacoes_nelder[,2,,] - simulacoes_nelder[,4,,]
 simulacoes_nelder[,13,,]  <- (simulacoes_nelder[,2,,] - simulacoes_nelder[,4,,])^2
-simulacoes_nelder[,14,,] <- (simulacoes_nelder[,7,,] / simulacoes_nelder[,5,,])^0.5
-simulacoes_nelder[,15,,] <- ((simulacoes_nelder[,1,,] - qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) < simulacoes_nelder[,4,,]) & ((simulacoes_nelder[,1,,] + qnorm(1 - 0.05/2) * simulacoes_nelder[,7,,]) > simulacoes_nelder[,4,,]) # Prob cobertura rho
+simulacoes_nelder[,14,,] <- (simulacoes_nelder[,7,,])^0.5
+simulacoes_nelder[,15,,] <- ((simulacoes_nelder[,2,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_nelder[,7,,])) < simulacoes_nelder[,4,,]) & ((simulacoes_nelder[,2,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_nelder[,7,,])) > simulacoes_nelder[,4,,]) # Prob cobertura rho
 
 simulacoes_nelder
 
@@ -493,13 +635,13 @@ simulacoes_bfgs[,,9,1]
 
 simulacoes_bfgs[,8,,]  <-  simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,]     # Vício de rho
 simulacoes_bfgs[,9,,]  <- (simulacoes_bfgs[,1,,] - simulacoes_bfgs[,3,,])^2 # EQM de rho
-simulacoes_bfgs[,10,,] <- (simulacoes_bfgs[,6,,] / simulacoes_bfgs[,5,,])^0.5
-simulacoes_bfgs[,11,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,6,,]) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,6,,]) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
+simulacoes_bfgs[,10,,] <- (simulacoes_bfgs[,6,,])^0.5
+simulacoes_bfgs[,11,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_bfgs[,6,,])) < simulacoes_bfgs[,3,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_bfgs[,6,,])) > simulacoes_bfgs[,3,,]) # Prob cobertura rho
 
 simulacoes_bfgs[,12,,] <-  simulacoes_bfgs[,2,,] - simulacoes_bfgs[,4,,]
 simulacoes_bfgs[,13,,]  <- (simulacoes_bfgs[,2,,] - simulacoes_bfgs[,4,,])^2
-simulacoes_bfgs[,14,,] <- (simulacoes_bfgs[,7,,] / simulacoes_bfgs[,5,,])^0.5
-simulacoes_bfgs[,15,,] <- ((simulacoes_bfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) < simulacoes_bfgs[,4,,]) & ((simulacoes_bfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_bfgs[,7,,]) > simulacoes_bfgs[,4,,]) # Prob cobertura rho
+simulacoes_bfgs[,14,,] <- (simulacoes_bfgs[,7,,])^0.5
+simulacoes_bfgs[,15,,] <- ((simulacoes_bfgs[,2,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_bfgs[,7,,])) < simulacoes_bfgs[,4,,]) & ((simulacoes_bfgs[,2,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_bfgs[,7,,])) > simulacoes_bfgs[,4,,]) # Prob cobertura rho
 
 simulacoes_bfgs
 
@@ -579,13 +721,13 @@ simulacoes_cg
 
 simulacoes_cg[,8,,]  <-  simulacoes_cg[,1,,] - simulacoes_cg[,3,,]     # Vício de rho
 simulacoes_cg[,9,,]  <- (simulacoes_cg[,1,,] - simulacoes_cg[,3,,])^2 # EQM de rho
-simulacoes_cg[,10,,] <- (simulacoes_cg[,6,,] / simulacoes_cg[,5,,])^0.5
-simulacoes_cg[,11,,] <- ((simulacoes_cg[,1,,] - qnorm(1 - 0.05/2) * simulacoes_cg[,6,,]) < simulacoes_cg[,3,,]) & ((simulacoes_cg[,1,,] + qnorm(1 - 0.05/2) * simulacoes_cg[,6,,]) > simulacoes_cg[,3,,]) # Prob cobertura rho
+simulacoes_cg[,10,,] <- (simulacoes_cg[,6,,])^0.5
+simulacoes_cg[,11,,] <- ((simulacoes_cg[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_cg[,6,,])) < simulacoes_cg[,3,,]) & ((simulacoes_cg[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_cg[,6,,])) > simulacoes_cg[,3,,]) # Prob cobertura rho
 
 simulacoes_cg[,12,,] <-  simulacoes_cg[,2,,] - simulacoes_cg[,4,,]
 simulacoes_cg[,13,,]  <- (simulacoes_cg[,2,,] - simulacoes_cg[,4,,])^2
-simulacoes_cg[,14,,] <- (simulacoes_cg[,7,,] / simulacoes_cg[,5,,])^0.5
-simulacoes_cg[,15,,] <- ((simulacoes_cg[,2,,] - qnorm(1 - 0.05/2) * simulacoes_cg[,7,,]) < simulacoes_cg[,4,,]) & ((simulacoes_cg[,2,,] + qnorm(1 - 0.05/2) * simulacoes_cg[,7,,]) > simulacoes_cg[,4,,]) # Prob cobertura rho
+simulacoes_cg[,14,,] <- (simulacoes_cg[,7,,])^0.5
+simulacoes_cg[,15,,] <- ((simulacoes_cg[,2,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_cg[,7,,])) < simulacoes_cg[,4,,]) & ((simulacoes_cg[,2,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_cg[,7,,])) > simulacoes_cg[,4,,]) # Prob cobertura rho
 
 simulacoes_cg
 
@@ -672,13 +814,13 @@ simulacoes_lbfgs
 
 simulacoes_lbfgs[,8,,]  <-  simulacoes_lbfgs[,1,,] - simulacoes_lbfgs[,3,,]     # Vício de rho
 simulacoes_lbfgs[,9,,]  <- (simulacoes_lbfgs[,1,,] - simulacoes_lbfgs[,3,,])^2 # EQM de rho
-simulacoes_lbfgs[,10,,] <- (simulacoes_lbfgs[,6,,] / simulacoes_lbfgs[,5,,])^0.5
-simulacoes_lbfgs[,11,,] <- ((simulacoes_lbfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_lbfgs[,6,,]) < simulacoes_lbfgs[,3,,]) & ((simulacoes_lbfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_lbfgs[,6,,]) > simulacoes_lbfgs[,3,,]) # Prob cobertura rho
+simulacoes_lbfgs[,10,,] <- (simulacoes_lbfgs[,6,,])^0.5
+simulacoes_lbfgs[,11,,] <- ((simulacoes_lbfgs[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_lbfgs[,6,,])) < simulacoes_lbfgs[,3,,]) & ((simulacoes_lbfgs[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_lbfgs[,6,,])) > simulacoes_lbfgs[,3,,]) # Prob cobertura rho
 
 simulacoes_lbfgs[,12,,] <-  simulacoes_lbfgs[,2,,] - simulacoes_lbfgs[,4,,]
 simulacoes_lbfgs[,13,,]  <- (simulacoes_lbfgs[,2,,] - simulacoes_lbfgs[,4,,])^2
-simulacoes_lbfgs[,14,,] <- (simulacoes_lbfgs[,7,,] / simulacoes_lbfgs[,5,,])^0.5
-simulacoes_lbfgs[,15,,] <- ((simulacoes_lbfgs[,1,,] - qnorm(1 - 0.05/2) * simulacoes_lbfgs[,7,,]) < simulacoes_lbfgs[,4,,]) & ((simulacoes_lbfgs[,1,,] + qnorm(1 - 0.05/2) * simulacoes_lbfgs[,7,,]) > simulacoes_lbfgs[,4,,]) # Prob cobertura rho
+simulacoes_lbfgs[,14,,] <- (simulacoes_lbfgs[,7,,])^0.5
+simulacoes_lbfgs[,15,,] <- ((simulacoes_lbfgs[,2,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_lbfgs[,7,,])) < simulacoes_lbfgs[,4,,]) & ((simulacoes_lbfgs[,2,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_lbfgs[,7,,])) > simulacoes_lbfgs[,4,,]) # Prob cobertura rho
 
 simulacoes_lbfgs
 
@@ -768,86 +910,262 @@ simulacoes_sann[,,9,1]
 
 simulacoes_sann[,8,,]  <-  simulacoes_sann[,1,,] - simulacoes_sann[,3,,]     # Vício de rho
 simulacoes_sann[,9,,]  <- (simulacoes_sann[,1,,] - simulacoes_sann[,3,,])^2 # EQM de rho
-simulacoes_sann[,10,,] <- (simulacoes_sann[,6,,] / simulacoes_sann[,5,,])^0.5
-simulacoes_sann[,11,,] <- ((simulacoes_sann[,1,,] - qnorm(1 - 0.05/2) * simulacoes_sann[,6,,]) < simulacoes_sann[,3,,]) & ((simulacoes_sann[,1,,] + qnorm(1 - 0.05/2) * simulacoes_sann[,6,,]) > simulacoes_sann[,3,,]) # Prob cobertura rho
+simulacoes_sann[,10,,] <- (simulacoes_sann[,6,,])^0.5
+simulacoes_sann[,11,,] <- ((simulacoes_sann[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_sann[,6,,])) < simulacoes_sann[,3,,]) & ((simulacoes_sann[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_sann[,6,,]) > simulacoes_sann[,3,,])) # Prob cobertura rho
 
 simulacoes_sann[,12,,] <-  simulacoes_sann[,2,,] - simulacoes_sann[,4,,]
 simulacoes_sann[,13,,]  <- (simulacoes_sann[,2,,] - simulacoes_sann[,4,,])^2
-simulacoes_sann[,14,,] <- (simulacoes_sann[,7,,] / simulacoes_sann[,5,,])^0.5
-simulacoes_sann[,15,,] <- ((simulacoes_sann[,1,,] - qnorm(1 - 0.05/2) * simulacoes_sann[,7,,]) < simulacoes_sann[,4,,]) & ((simulacoes_sann[,1,,] + qnorm(1 - 0.05/2) * simulacoes_sann[,7,,]) > simulacoes_sann[,4,,]) # Prob cobertura rho
+simulacoes_sann[,14,,] <- (simulacoes_sann[,7,,])^0.5
+simulacoes_sann[,15,,] <- ((simulacoes_sann[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_sann[,7,,])) < simulacoes_sann[,4,,]) & ((simulacoes_sann[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_sann[,7,,])) > simulacoes_sann[,4,,]) # Prob cobertura rho
 
 simulacoes_sann
 
-# Verificando os resultados das simulações --------------------------------
+
+# Os Resultados -----------------------------------------------------------
 
 
-simulacoes_nelder[,,1,2]
-simulacoes_nelder[,1,1,] # Todos os theta estimados quando theta = 0.5
 
-simulacoes_nelder[,1,1,][simulacoes_nelder[,1,1,] == 0]
+# Resultados nelder
+for(i in 1:10){
+  vicio_theta <- mean(simulacoes_nelder[,8,,i],na.rm=T)
+  eqm_theta <- mean(simulacoes_nelder[,9,,i],na.rm=T)
+  erro_theta <- mean(simulacoes_nelder[,10,,i],na.rm=T)
+  prob_theta <- mean(simulacoes_nelder[,11,,i],na.rm=T)
+  var_theta  <- mean(simulacoes_nelder[,6,,i], na.rm = T)
+  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_nelder[,6,,i]), na.rm = T)
+  
+  vicio_rho <- mean(simulacoes_nelder[,12,,i],na.rm=T)
+  eqm_rho <- mean(simulacoes_nelder[,13,,i],na.rm=T)
+  erro_rho <- mean(simulacoes_nelder[,14,,i],na.rm=T)
+  prob_rho <- mean(simulacoes_nelder[,15,,i],na.rm=T)
+  var_rho  <- mean(simulacoes_nelder[,7,,i], na.rm = T)
+  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_nelder[,7,,i]), na.rm = T)
+  
+  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'Nelder')
+  if(i == 1) 
+  {
+    resultados_nelder <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                    'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                    'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                    'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
+                                    'n' = i*10, 'simulacao' = 'Nelder')
+  }
+  else{
+    resultados_nelder <-rbind(resultados_nelder, valores)
+  }
+  
+  
+}
+resultados_nelder
 
-thetas_nelder <- apply(simulacoes_nelder[,1,1,] , MARGIN = 2, FUN= mean) # A média de cada uma das
-thetas_nelder
-plot(thetas_nelder, type = 'l', ylim = c(0.45, 0.70))
-abline(h=0.5, col = 'red')
+## RESULTADOS BFGS
 
-# theta
-# 08 - vicio; 09 - eqm; 10 - erro padrão; 11 - prob de cobertura
+for(i in 1:10){
+  vicio_theta <- mean(simulacoes_bfgs[,8,,i],na.rm=T)
+  eqm_theta <- mean(simulacoes_bfgs[,9,,i],na.rm=T)
+  erro_theta <- mean(simulacoes_bfgs[,10,,i],na.rm=T)
+  prob_theta <- mean(simulacoes_bfgs[,11,,i],na.rm=T)
+  var_theta  <- mean(simulacoes_bfgs[,6,,i], na.rm = T)
+  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_bfgs[,6,,i]), na.rm = T)
+  
+  vicio_rho <- mean(simulacoes_bfgs[,12,,i],na.rm=T)
+  eqm_rho <- mean(simulacoes_bfgs[,13,,i],na.rm=T)
+  erro_rho <- mean(simulacoes_bfgs[,14,,i],na.rm=T)
+  prob_rho <- mean(simulacoes_bfgs[,15,,i],na.rm=T)
+  var_rho  <- mean(simulacoes_bfgs[,7,,i], na.rm = T)
+  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_bfgs[,7,,i]), na.rm = T)
+  
+  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'BFGS')
+  if(i == 1) 
+  {
+    resultados_bfgs <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                  'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                  'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                  'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
+                                  'n' = i*10, 'simulacao' = 'BFGS')
+  }
+  else{
+    resultados_bfgs <-rbind(resultados_bfgs, valores)
+  }
+  
+  
+}
+resultados_bfgs
 
-# rho
-# 12 - vicio; 13 - eqm; 14 - erro padrão; 15 - prob de cobertura
+## RESULTADOS CG
 
-# As dimensões representam, respectivamente, Linha, coluna, dimensão referente a comb dos parâmetros, dimensão do tamanho de amostra
-load('simulacoes_cg.Rdata')
-simulacoes_cg[,,,1]
 for(i in 1:10){
   vicio_theta <- mean(simulacoes_cg[,8,,i],na.rm=T)
   eqm_theta <- mean(simulacoes_cg[,9,,i],na.rm=T)
   erro_theta <- mean(simulacoes_cg[,10,,i],na.rm=T)
   prob_theta <- mean(simulacoes_cg[,11,,i],na.rm=T)
+  var_theta  <- mean(simulacoes_cg[,6,,i], na.rm = T)
+  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_cg[,6,,i]), na.rm = T)
   
   vicio_rho <- mean(simulacoes_cg[,12,,i],na.rm=T)
   eqm_rho <- mean(simulacoes_cg[,13,,i],na.rm=T)
   erro_rho <- mean(simulacoes_cg[,14,,i],na.rm=T)
   prob_rho <- mean(simulacoes_cg[,15,,i],na.rm=T)
+  var_rho  <- mean(simulacoes_cg[,7,,i], na.rm = T)
+  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_cg[,7,,i]), na.rm = T)
   
-  valores <- c(vicio_theta, eqm_theta, erro_theta, prob_theta, vicio_rho, eqm_rho, erro_rho, prob_rho, i*10)
+  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'CG')
   if(i == 1) 
   {
-    resultados_cg <- data.frame('vicio_t'= vicio_theta, 'eqm_t'= eqm_theta, 'erro_t' = erro_theta,  'prob_t' = prob_theta,
-                                'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho, 'erro_r' = erro_rho, 'prob_r' = prob_rho, 'n' = i*10)
+    resultados_cg <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
+                                'n' = i*10, 'simulacao' = 'CG')
   }
   else{
     resultados_cg <-rbind(resultados_cg, valores)
   }
- 
- 
+  
+  
 }
 resultados_cg
 
-library(ggplot2)
+## RESULTADOS LBFGS
+
+for(i in 1:10){
+  vicio_theta <- mean(simulacoes_lbfgs[,8,,i],na.rm=T)
+  eqm_theta <- mean(simulacoes_lbfgs[,9,,i],na.rm=T)
+  erro_theta <- mean(simulacoes_lbfgs[,10,,i],na.rm=T)
+  prob_theta <- mean(simulacoes_lbfgs[,11,,i],na.rm=T)
+  var_theta  <- mean(simulacoes_lbfgs[,6,,i], na.rm = T)
+  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_lbfgs[,6,,i]), na.rm = T)
   
-uni_lineplot <- function(var, banco, simulacao,  ylab = '', xlab = 'Tamanho da amostra')
+  vicio_rho <- mean(simulacoes_lbfgs[,12,,i],na.rm=T)
+  eqm_rho <- mean(simulacoes_lbfgs[,13,,i],na.rm=T)
+  erro_rho <- mean(simulacoes_lbfgs[,14,,i],na.rm=T)
+  prob_rho <- mean(simulacoes_lbfgs[,15,,i],na.rm=T)
+  var_rho  <- mean(simulacoes_lbfgs[,7,,i], na.rm = T)
+  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_lbfgs[,7,,i]), na.rm = T)
+  
+  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'L-BFGS-B')
+  if(i == 1) 
   {
+    resultados_lbfgs <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                   'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                   'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                   'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
+                                   'n' = i*10, 'simulacao' = 'L-BFGS-B')
+  }
+  else{
+    resultados_lbfgs <-rbind(resultados_lbfgs, valores)
+  }
+  
+  
+}
+resultados_lbfgs
+
+## RESULTADOS SANN
+
+for(i in 1:10){
+  vicio_theta <- mean(simulacoes_sann[,8,,i],na.rm=T)
+  eqm_theta <- mean(simulacoes_sann[,9,,i],na.rm=T)
+  erro_theta <- mean(simulacoes_sann[,10,,i],na.rm=T)
+  prob_theta <- mean(simulacoes_sann[,11,,i],na.rm=T)
+  var_theta  <- mean(simulacoes_sann[,6,,i], na.rm = T)
+  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_sann[,6,,i]), na.rm = T)
+  
+  vicio_rho <- mean(simulacoes_sann[,12,,i],na.rm=T)
+  eqm_rho <- mean(simulacoes_sann[,13,,i],na.rm=T)
+  erro_rho <- mean(simulacoes_sann[,14,,i],na.rm=T)
+  prob_rho <- mean(simulacoes_sann[,15,,i],na.rm=T)
+  var_rho  <- mean(simulacoes_sann[,7,,i], na.rm = T)
+  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_sann[,7,,i]), na.rm=T)
+  
+  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'SANN')
+  if(i == 1) 
+  {
+    resultados_sann <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                  'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                  'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                  'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
+                                  'n' = i*10, 'simulacao' = 'SANN')
+  }
+  else{
+    resultados_sann <-rbind(resultados_sann, valores)
+  }
+  
+  
+}
+resultados_sann
+
+## RESULTADOS NEWTON-RAPHSON
+
+for(i in 1:10){
+  vicio_theta <- mean(simulacoes_newton[,8,,i],na.rm=T)
+  eqm_theta <- mean(simulacoes_newton[,9,,i],na.rm=T)
+  erro_theta <- mean(simulacoes_newton[,10,,i],na.rm=T)
+  prob_theta <- mean(simulacoes_newton[,11,,i],na.rm=T)
+  var_theta  <- mean(simulacoes_newton[,6,,i], na.rm = T)
+  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_newton[,6,,i]), na.rm = T)
+  
+  vicio_rho <- mean(simulacoes_newton[,12,,i],na.rm=T)
+  eqm_rho <- mean(simulacoes_newton[,13,,i],na.rm=T)
+  erro_rho <- mean(simulacoes_newton[,14,,i],na.rm=T)
+  prob_rho <- mean(simulacoes_newton[,15,,i],na.rm=T)
+  var_rho  <- mean(simulacoes_newton[,7,,i], na.rm = T)
+  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_newton[,7,,i]), ra.rm = T)
+  
+  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'NR')
+  if(i == 1) 
+  {
+    resultados_newton <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                    'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                    'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                    'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho, 
+                                    'n' = i*10, 'simulacao' = 'NR')
+  }
+  else{
+    resultados_newton <-rbind(resultados_newton, valores)
+  }
+  
+  
+}
+resultados_newton
+
+
+
+# Análise dos resultados --------------------------------------------------
+
+resultados_nelder
+resultados_bfgs
+resultados_cg
+resultados_lbfgs
+resultados_sann
+resultados_newton
+
+
+
+# UNIVARIADA
+
+library(ggplot2)
+
+uni_lineplot <- function(var, banco, simulacao,  ylab = '', xlab = 'Tamanho da amostra')
+{
   if(var == 'prob_t' || var == 'prob_r')
   {
     grafico <- ggplot(banco,aes(x= n, y= .data[[var]])) +
       geom_line()+ 
       geom_point()+ 
-      geom_hline(yintercept=0.95, col = 'red')+
+      geom_hline(yintercept=0.95, col = 'red', linetype='dashed')+
       theme_minimal()+
       xlab(xlab)+
       ylab(ylab)
   }
   else{
-   grafico <- ggplot(banco,aes(x= n, y= .data[[var]])) +
-    geom_line()+ 
-    geom_point()+ 
-    geom_hline(yintercept=0, col = 'red')+
-    theme_minimal()+
-    xlab(xlab)+
-    ylab(ylab)}
-   
+    grafico <- ggplot(banco,aes(x= n, y= .data[[var]])) +
+      geom_line()+ 
+      geom_point()+ 
+      geom_hline(yintercept=0, col = 'red', linetype='dashed')+
+      theme_minimal()+
+      xlab(xlab)+
+      ylab(ylab)}
+  
   print(grafico)
   arquivo <- paste0('img/', simulacao, '_', var, '.jpg')
   ggsave(arquivo)
@@ -856,3 +1174,182 @@ uni_lineplot <- function(var, banco, simulacao,  ylab = '', xlab = 'Tamanho da a
 uni_lineplot('vicio_t', resultados_cg, 'cg')
 uni_lineplot('eqm_t', resultados_cg, 'cg')
 uni_lineplot('prob_t', resultados_cg, 'cg')
+
+# COMPARATIVO -------------------------------
+
+resultados <- do.call(rbind,list(resultados_nelder,
+                                 resultados_bfgs,
+                                 resultados_cg,
+                                 resultados_lbfgs,
+                                 resultados_newton
+))
+
+resultados$n <- factor(resultados$n, levels=c(seq(10, 100,10)))
+save(resultados, file = 'resultados.RData')
+
+library(ggplot2)
+library(gridExtra)
+formato <- theme(                                                       
+  plot.title = element_text(size = 14, hjust = 0.5),
+  axis.title.y = element_text(size = 12, vjust = 0.5, angle= 0),
+  axis.title.x = element_text(size = 12, vjust = -0.2),
+  axis.text.y = element_text(size = 10),
+  axis.text.x = element_text(size = 10))
+
+paleta <- c("#662F00", "#996035", "#CC9B7A", '#D8AF97')
+
+par(mfrow = c(1,1))
+
+# Vício para theta
+ggplot(resultados, aes(x = n, y = as.numeric(vicio_t), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1.3, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Vício')+
+  ggtitle('Gráfico do vício para theta por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+ggsave('img/Vicio_theta.jpg')
+
+# Vício para rho
+ggplot(resultados, aes(x = n, y = as.numeric(vicio_r), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1.3, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Vício')+
+  ggtitle('Gráfico do vício para rho por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+
+ggsave('img/Vicio_rho.jpg')
+
+# eqm para theta
+ggplot(resultados, aes(x = n, y = as.numeric(eqm_t), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1.3, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('EQM')+
+  ggtitle('Gráfico do EQM para theta por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+ggsave('img/eqm_theta.jpg')
+
+# eqm para rho
+ggplot(resultados, aes(x = n, y = as.numeric(eqm_r), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1.3, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('EQM')+
+  ggtitle('Gráfico do EQM para rho por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+ggsave('img/eqm_rho.jpg')
+
+# erro para theta
+ggplot(resultados, aes(x = n, y = as.numeric(erro_t), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Erro')+
+  ggtitle('Gráfico do erro padrão para theta por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+ggsave('img/erro_theta.jpg')
+
+# erro para rho
+ggplot(resultados, aes(x = n, y = as.numeric(erro_r), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Erro')+
+  ggtitle('Gráfico do erro padrão para rho por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+
+ggsave('img/erro_rho.jpg') 
+
+# probabilidade de cobertura para theta
+ggplot(resultados, aes(x = n, y = as.numeric(prob_t), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Probabilidade')+
+  ggtitle('Gráfico da probabilidade de cobertura para theta por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0.95, col = 'red', linetype = 'dashed')
+
+ggsave('img/prob_theta.jpg')
+
+# probabilidade de cobertura para rho
+ggplot(resultados, aes(x = n, y = as.numeric(prob_r), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Probabilidade')+
+  ggtitle('Gráfico da probabilidade de cobertura para rho por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0.95, col = 'red', linetype = 'dashed')
+
+ggsave('img/prob_rho.jpg')
+
+# tamanho de cobertura para theta
+ggplot(resultados, aes(x = n, y = as.numeric(tam_t), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Cobertura')+
+  ggtitle('Gráfico do tamanho da cobertura para theta por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+ggsave('img/tamanho_theta.jpg')
+
+# tamanho de cobertura para rho
+ggplot(resultados, aes(x = n, y = as.numeric(tam_r), colour = simulacao, group = simulacao)) +
+  geom_line(linewidth =1, alpha = 0.7)+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Cobertura')+
+  ggtitle('Gráfico do tamanho da cobertura para rho por simulação')+
+  theme_minimal()+
+  formato +
+  guides(colour = guide_legend(title = "Simulação"))+
+  scale_colour_manual(values=paleta)+
+  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+
+ggsave('img/tamanho_rho.jpg')
+
+
