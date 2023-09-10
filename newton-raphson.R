@@ -298,7 +298,7 @@ library(plyr)
 
 
 
-nr <- function(i, itr = 5000, erro = 10e-6, N = 50000, par_comb = list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), 
+nr <- function(i, itr = 5000, erro = 10e-4, N = 50000, par_comb = list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), 
                                                                  c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
                                                                  c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))){
   
@@ -351,24 +351,3 @@ nr <- function(i, itr = 5000, erro = 10e-6, N = 50000, par_comb = list(c(0.5, 0.
 
 nr(1:100)
 
-library(plyr)
-library(doParallel)
-cl <- makeCluster(2)
-registerDoParallel(cl)
-opts <- list(preschedule=TRUE)
-clusterSetRNGStream(cl, 123)
-clusterCall(cl, function() library(LambertW))
-clusterExport(cl, c("rlindley_geom", 'qlindley_geom', 'J', 'U', 'simulacoes_newton'))
-
-simulacoes_newton <- array(c(rep(0,6)), dim=c(N,15,9,10))
-simulacoes_newton
-
-library(LambertW)
-llply(1:50000, nr, .parallel = T, .paropts = list(.options.snow=opts), )
-
-help(llply)
-parallel::parLapply(cl,
-                    1:50000,
-                    nr)
-
-parallel::stopCluster(cl)

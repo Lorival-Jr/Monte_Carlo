@@ -378,7 +378,7 @@ erro <- 0.0000001
 i <- 1
 
 itr <- 500
-erro <- 10e-6
+erro <- 10e-4
 i <- 1
 
 
@@ -953,7 +953,7 @@ par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinaçõ
 length(par_comb)
 N <- 50000
 
-AA_simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,15,9,10))
+AA_simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,13,9,10)) # COLUNAS, theta_op1, theta_op2, rho_op1, rho_op2, par1, par2, n, var_theta_op1, var_theta_op2, var_rho_op1, var_rho_op2, cov_theta, cov_rho
 AA_simulacoes_lbfgs
 
 
@@ -1012,23 +1012,21 @@ for (i in 1:N)                                  # Número de simulações
   }
   
   if(typeof(op2) == 'character' || typeof(op1) == 'character')
-  { valores <- c(NA, NA, par[1], par[2], n, NA, NA,  rep(0,8))
+  { valores <- c(NA, NA, NA, NA, par[1], par[2], n, rep(NA,6))
   AA_simulacoes_lbfgs[i, ,index_par, index_n] <- valores
   next}
-  
-  estimativas <- (op1$par + op2$par)*0.5
   
   h1 <- try(-solve(op1$hessian))              # Tenta inverter a hessiana
   h2 <- try(-solve(op2$hessian))              # Tenta inverter a hessiana
   
   
-  if(typeof(h1) == 'character' || typeof(h2) == 'character') {h <- c(NA, NA)}  
+  if(typeof(h1) == 'character' || typeof(h2) == 'character') {h <- c(NA, NA, NA, NA)}  
   else
     {
-      h <- 0.5*(diag(h1) + diag(h2))*(1 + cor(amostra1, amostra2))
+      h <- -c(h1[1], h2[1], h1[2], h2[2])
     }
   
-  valores <- c(estimativas, par[1], par[2], n, h, rep(0,8))
+  valores <- c(op1$par[1], op2$par[1],op1$par[2], op2$par[2], par[1], par[2], n, h, NA, NA)
   # Valores recebe o que queremos dessa bagaça toda,
   # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
   
@@ -1040,6 +1038,8 @@ for (i in 1:N)                                  # Número de simulações
   
 }
 
+
+cov(na.omit(AA_simulacoes_lbfgs[,1,,]), na.omit(AA_simulacoes_lbfgs[,2,,]))
 
 sum(is.na(AA_simulacoes_lbfgs[,1,,]))
 
@@ -1063,223 +1063,137 @@ save(AA_simulacoes_lbfgs,  file = 'AA_simulacoes_lbfgs.Rdata')
 save(diagnostico_AA_lbfgs, file = 'diagnostico_AA_lbfgs.Rdata')
 
 
+for(i in 1:10)
+{
+  for(j in 1:9)
+  {
+    AA_simulacoes_lbfgs[,12,j,i] <- cov(na.omit(AA_simulacoes_lbfgs[,1,j,i]), na.omit(AA_simulacoes_lbfgs[,2,j,i]))
+    AA_simulacoes_lbfgs[,13,j,i] <- cov(na.omit(AA_simulacoes_lbfgs[,3,j,i]), na.omit(AA_simulacoes_lbfgs[,4,j,i]))
+  }
+}
+AA_simulacoes_lbfgs
 
 
-
-
-
+AA_simulacoes_lbfgs[,,2,3]
 
 
 # Os Resultados -----------------------------------------------------------
 
-load('simulacoes_nelder.RData')
-load('simulacoes_bfgs.RData')
-load('simulacoes_lbfgs.RData')
-load('simulacoes_sann.RData')
-load('simulacoes_cg.RData')
+load('RDatas/simulacoes_nelder.RData')
+load('RDatas/simulacoes_bfgs.RData')
+load('RDatas/simulacoes_lbfgs.RData')
+load('RDatas/simulacoes_sann.RData')
+load('RDatas/simulacoes_cg.RData')
 load('AA_simulacoes_lbfgs.Rdata')
 
-# Resultados nelder
-for(i in 1:10){
-  vicio_theta <- mean(simulacoes_nelder[,8,,i],na.rm=T)
-  eqm_theta <- mean(simulacoes_nelder[,9,,i],na.rm=T)
-  erro_theta <- mean(simulacoes_nelder[,10,,i],na.rm=T)
-  prob_theta <- mean(simulacoes_nelder[,11,,i],na.rm=T)
-  var_theta  <- mean(simulacoes_nelder[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_nelder[,6,,i]), na.rm = T)
+
+gera_resultados <- function(simulacao, comparacao = c('externa', 'interna'), nome_simulacao)
+{
   
-  vicio_rho <- mean(simulacoes_nelder[,12,,i],na.rm=T)
-  eqm_rho <- mean(simulacoes_nelder[,13,,i],na.rm=T)
-  erro_rho <- mean(simulacoes_nelder[,14,,i],na.rm=T)
-  prob_rho <- mean(simulacoes_nelder[,15,,i],na.rm=T)
-  var_rho  <- mean(simulacoes_nelder[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_nelder[,7,,i]), na.rm = T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'Nelder')
-  if(i == 1) 
-  {
-    resultados_nelder <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+  if(comparacao == 'externa')
+   { 
+    for(i in 1:10){
+      vicio_theta <- mean(simulacao[,8,,i],na.rm=T)
+      eqm_theta <- mean(simulacao[,9,,i],na.rm=T)
+      erro_theta <- mean(simulacao[,10,,i],na.rm=T)
+      prob_theta <- mean(simulacao[,11,,i],na.rm=T)
+      var_theta  <- mean(simulacao[,6,,i], na.rm = T)
+      tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacao[,6,,i]), na.rm = T)
+      
+      vicio_rho <- mean(simulacao[,12,,i],na.rm=T)
+      eqm_rho <- mean(simulacao[,13,,i],na.rm=T)
+      erro_rho <- mean(simulacao[,14,,i],na.rm=T)
+      prob_rho <- mean(simulacao[,15,,i],na.rm=T)
+      var_rho  <- mean(simulacao[,7,,i], na.rm = T)
+      tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacao[,7,,i]), na.rm = T)
+      
+      valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, nome_simulacao)
+      if(i == 1) 
+      {
+        resultados <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
                                     'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
                                     'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
                                     'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
-                                    'n' = i*10, 'simulacao' = 'Nelder')
-  }
-  else{
-    resultados_nelder <-rbind(resultados_nelder, valores)
+                                    'n' = i*10, 'simulacao' = nome_simulacao)
+      }
+      else{
+        resultados <-rbind(resultados, valores)
+      }}}
+    else
+    { 
+      for(i in 1:9){
+        for(j in 1:10){
+          vicio_theta <- mean(simulacao[,8,i,j],na.rm=T)
+          eqm_theta <- mean(simulacao[,9,i,j],na.rm=T)
+          erro_theta <- mean(simulacao[,10,i,j],na.rm=T)
+          prob_theta <- mean(simulacao[,11,i,j],na.rm=T)
+          var_theta  <- mean(simulacao[,6,i,j], na.rm = T)
+          tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacao[,6,i,j]), na.rm = T)
+          
+          vicio_rho <- mean(simulacao[,12,i,j],na.rm=T)
+          eqm_rho <- mean(simulacao[,13,i,j],na.rm=T)
+          erro_rho <- mean(simulacao[,14,i,j],na.rm=T)
+          prob_rho <- mean(simulacao[,15,i,j],na.rm=T)
+          var_rho  <- mean(simulacao[,7,i,j], na.rm = T)
+          tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacao[,7,i,]), na.rm = T)
+          
+          comb_par <- paste(simulacoes_cg[1,c(3,4),i,j], collapse = '  ')
+          
+          valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, j*10, comb_par, nome_simulacao)
+          if(j == 1 && i == 1) 
+          {
+            resultados <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
+                                        'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
+                                        'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
+                                        'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
+                                        'n' = j*10, comb_par, 'simulacao' = nome_simulacao)
+          }
+          else{
+            resultados <-rbind(resultados, valores)
+          }}}
+    
+    
   }
   
+  return(resultados)
   
 }
+
+
+
+
+
+# Resultados nelder
+resultados_nelder <- gera_resultados(simulacoes_nelder, 'externa', 'Nelder')
+interno_nelder    <- gera_resultados(simulacoes_nelder, 'interna', 'Nelder')
+
 resultados_nelder
 
 ## RESULTADOS BFGS
-
-for(i in 1:10){
-  vicio_theta <- mean(simulacoes_bfgs[,8,,i],na.rm=T)
-  eqm_theta <- mean(simulacoes_bfgs[,9,,i],na.rm=T)
-  erro_theta <- mean(simulacoes_bfgs[,10,,i],na.rm=T)
-  prob_theta <- mean(simulacoes_bfgs[,11,,i],na.rm=T)
-  var_theta  <- mean(simulacoes_bfgs[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_bfgs[,6,,i]), na.rm = T)
-  
-  vicio_rho <- mean(simulacoes_bfgs[,12,,i],na.rm=T)
-  eqm_rho <- mean(simulacoes_bfgs[,13,,i],na.rm=T)
-  erro_rho <- mean(simulacoes_bfgs[,14,,i],na.rm=T)
-  prob_rho <- mean(simulacoes_bfgs[,15,,i],na.rm=T)
-  var_rho  <- mean(simulacoes_bfgs[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_bfgs[,7,,i]), na.rm = T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'BFGS')
-  if(i == 1) 
-  {
-    resultados_bfgs <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
-                                  'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
-                                  'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
-                                  'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
-                                  'n' = i*10, 'simulacao' = 'BFGS')
-  }
-  else{
-    resultados_bfgs <-rbind(resultados_bfgs, valores)
-  }
-  
-  
-}
+resultados_bfgs <- gera_resultados(simulacoes_bfgs, 'externa', 'BFGS')
+interno_bfgs    <- gera_resultados(simulacoes_bfgs, 'interna', 'BFGS')
 resultados_bfgs
 
 ## RESULTADOS CG
-
-for(i in 1:10){
-  vicio_theta <- mean(simulacoes_cg[,8,,i],na.rm=T)
-  eqm_theta <- mean(simulacoes_cg[,9,,i],na.rm=T)
-  erro_theta <- mean(simulacoes_cg[,10,,i],na.rm=T)
-  prob_theta <- mean(simulacoes_cg[,11,,i],na.rm=T)
-  var_theta  <- mean(simulacoes_cg[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_cg[,6,,i]), na.rm = T)
-  
-  vicio_rho <- mean(simulacoes_cg[,12,,i],na.rm=T)
-  eqm_rho <- mean(simulacoes_cg[,13,,i],na.rm=T)
-  erro_rho <- mean(simulacoes_cg[,14,,i],na.rm=T)
-  prob_rho <- mean(simulacoes_cg[,15,,i],na.rm=T)
-  var_rho  <- mean(simulacoes_cg[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_cg[,7,,i]), na.rm = T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'CG')
-  if(i == 1) 
-  {
-    resultados_cg <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
-                                'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
-                                'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
-                                'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
-                                'n' = i*10, 'simulacao' = 'CG')
-  }
-  else{
-    resultados_cg <-rbind(resultados_cg, valores)
-  }
-  
-  
-}
+resultados_cg <- gera_resultados(simulacoes_cg, 'externa', 'CG')
+interno_cg    <- gera_resultados(simulacoes_cg, 'interna', 'CG')
 resultados_cg
 
 ## RESULTADOS LBFGS
-
-for(i in 1:10){
-  vicio_theta <- mean(simulacoes_lbfgs[,8,,i],na.rm=T)
-  eqm_theta <- mean(simulacoes_lbfgs[,9,,i],na.rm=T)
-  erro_theta <- mean(simulacoes_lbfgs[,10,,i],na.rm=T)
-  prob_theta <- mean(simulacoes_lbfgs[,11,,i],na.rm=T)
-  var_theta  <- mean(simulacoes_lbfgs[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_lbfgs[,6,,i]), na.rm = T)
-  
-  vicio_rho <- mean(simulacoes_lbfgs[,12,,i],na.rm=T)
-  eqm_rho <- mean(simulacoes_lbfgs[,13,,i],na.rm=T)
-  erro_rho <- mean(simulacoes_lbfgs[,14,,i],na.rm=T)
-  prob_rho <- mean(simulacoes_lbfgs[,15,,i],na.rm=T)
-  var_rho  <- mean(simulacoes_lbfgs[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_lbfgs[,7,,i]), na.rm = T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'L-BFGS-B')
-  if(i == 1) 
-  {
-    resultados_lbfgs <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
-                                   'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
-                                   'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
-                                   'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
-                                   'n' = i*10, 'simulacao' = 'L-BFGS-B')
-  }
-  else{
-    resultados_lbfgs <-rbind(resultados_lbfgs, valores)
-  }
-  
-  
-}
+resultados_lbfgs <- gera_resultados(simulacoes_lbfgs, 'externa', 'L-BFGS-B')
+interno_lbfgs    <- gera_resultados(simulacoes_lbfgs, 'interna','L-BFGS-B')
 resultados_lbfgs
 
-## RESULTADOS SANN
 
-for(i in 1:10){
-  vicio_theta <- mean(simulacoes_sann[,8,,i],na.rm=T)
-  eqm_theta <- mean(simulacoes_sann[,9,,i],na.rm=T)
-  erro_theta <- mean(simulacoes_sann[,10,,i],na.rm=T)
-  prob_theta <- mean(simulacoes_sann[,11,,i],na.rm=T)
-  var_theta  <- mean(simulacoes_sann[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_sann[,6,,i]), na.rm = T)
-  
-  vicio_rho <- mean(simulacoes_sann[,12,,i],na.rm=T)
-  eqm_rho <- mean(simulacoes_sann[,13,,i],na.rm=T)
-  erro_rho <- mean(simulacoes_sann[,14,,i],na.rm=T)
-  prob_rho <- mean(simulacoes_sann[,15,,i],na.rm=T)
-  var_rho  <- mean(simulacoes_sann[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_sann[,7,,i]), na.rm=T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'SANN')
-  if(i == 1) 
-  {
-    resultados_sann <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
-                                  'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
-                                  'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
-                                  'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
-                                  'n' = i*10, 'simulacao' = 'SANN')
-  }
-  else{
-    resultados_sann <-rbind(resultados_sann, valores)
-  }
-  
-  
-}
+## RESULTADOS SANN
+resultados_sann <- gera_resultados(simulacoes_sann, 'externa', 'SANN')
+interno_sann    <- gera_resultados(simulacoes_sann, 'interna', 'SANN')
 resultados_sann
 
 ## RESULTADOS NEWTON-RAPHSON
 
-for(i in 1:10){
-  vicio_theta <- mean(simulacoes_newton[,8,,i],na.rm=T)
-  eqm_theta <- mean(simulacoes_newton[,9,,i],na.rm=T)
-  erro_theta <- mean(simulacoes_newton[,10,,i],na.rm=T)
-  prob_theta <- mean(simulacoes_newton[,11,,i],na.rm=T)
-  var_theta  <- mean(simulacoes_newton[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_newton[,6,,i]), na.rm = T)
-  
-  vicio_rho <- mean(simulacoes_newton[,12,,i],na.rm=T)
-  eqm_rho <- mean(simulacoes_newton[,13,,i],na.rm=T)
-  erro_rho <- mean(simulacoes_newton[,14,,i],na.rm=T)
-  prob_rho <- mean(simulacoes_newton[,15,,i],na.rm=T)
-  var_rho  <- mean(simulacoes_newton[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(simulacoes_newton[,7,,i]), ra.rm = T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'NR')
-  if(i == 1) 
-  {
-    resultados_newton <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
-                                    'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
-                                    'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
-                                    'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho, 
-                                    'n' = i*10, 'simulacao' = 'NR')
-  }
-  else{
-    resultados_newton <-rbind(resultados_newton, valores)
-  }
-  
-  
-}
+resultados_newton <- gera_resultados(simulacoes_newton, 'externa', 'NR')
+interno_newton    <- gera_resultados(simulacoes_newton, 'interna', 'NR')
 resultados_newton
 
 
@@ -1287,37 +1201,6 @@ resultados_newton
 
 ## RESULTADOS LBFGS com redução de variância
 
-for(i in 1:10){
-  vicio_theta <- mean(AA_simulacoes_lbfgs[,8,,i],na.rm=T)
-  eqm_theta <- mean(AA_simulacoes_lbfgs[,9,,i],na.rm=T)
-  erro_theta <- mean(AA_simulacoes_lbfgs[,10,,i],na.rm=T)
-  prob_theta <- mean(AA_simulacoes_lbfgs[,11,,i],na.rm=T)
-  var_theta  <- mean(AA_simulacoes_lbfgs[,6,,i], na.rm = T)
-  tam_theta  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(AA_simulacoes_lbfgs[,6,,i]), na.rm = T)
-  
-  vicio_rho <- mean(AA_simulacoes_lbfgs[,12,,i],na.rm=T)
-  eqm_rho <- mean(AA_simulacoes_lbfgs[,13,,i],na.rm=T)
-  erro_rho <- mean(AA_simulacoes_lbfgs[,14,,i],na.rm=T)
-  prob_rho <- mean(AA_simulacoes_lbfgs[,15,,i],na.rm=T)
-  var_rho  <- mean(AA_simulacoes_lbfgs[,7,,i], na.rm = T)
-  tam_rho  <- 2*qnorm(1 - 0.05/2)*mean(sqrt(AA_simulacoes_lbfgs[,7,,i]), na.rm = T)
-  
-  valores <- c(var_theta, vicio_theta, eqm_theta, erro_theta, prob_theta, tam_theta, var_rho, vicio_rho, eqm_rho, erro_rho, prob_rho, tam_rho, i*10, 'L-BFGS-B-AA')
-  if(i == 1) 
-  {
-    resultados_AA_lbfgs <- data.frame('var_t' = var_theta,'vicio_t'= vicio_theta, 'eqm_t'= eqm_theta,
-                                  'erro_t' = erro_theta,  'prob_t' = prob_theta, 'tam_t'= tam_theta,
-                                  'var_r' = var_rho,'vicio_r' = vicio_rho, 'eqm_r' = eqm_rho,
-                                  'erro_r' = erro_rho, 'prob_r' = prob_rho,'tam_r'= tam_rho,
-                                  'n' = i*10, 'simulacao' = 'L-BFGS-B-AA')
-  }
-  else{
-    resultados_AA_lbfgs <-rbind(resultados_AA_lbfgs, valores)
-  }
-  
-  
-}
-resultados_AA_lbfgs
 
 # Análise dos resultados --------------------------------------------------
 
@@ -1329,10 +1212,19 @@ resultados_sann
 resultados_newton
 
 
-
 # UNIVARIADA
 
 library(ggplot2)
+
+formato <- theme(                                                       
+  plot.title = element_text(size = 14, hjust = 0.5),
+  axis.title.y = element_text(size = 12, vjust = 0.5, angle= 0),
+  axis.title.x = element_text(size = 12, vjust = -0.2),
+  axis.text.y = element_text(size = 10),
+  axis.text.x = element_text(size = 10)
+)
+
+paleta <- c("#662F00", "#996035", "#CC9B7A", '#D8AF97', '#449CCC')
 
 uni_lineplot <- function(var, banco, simulacao,  ylab = '', xlab = 'Tamanho da amostra')
 {
@@ -1359,10 +1251,90 @@ uni_lineplot <- function(var, banco, simulacao,  ylab = '', xlab = 'Tamanho da a
   arquivo <- paste0('img/', simulacao, '_', var, '.jpg')
   ggsave(arquivo)
 }
+library(ggplot2)
 
-uni_lineplot('vicio_t', resultados_cg, 'cg')
-uni_lineplot('eqm_t', resultados_cg, 'cg')
-uni_lineplot('prob_t', resultados_cg, 'cg')
+interno_bfgs$comb_par
+
+
+
+comb_par_lineplot <- function(var, banco, xlab = 'Tamanho da amostra', paleta = paleta)
+{
+  
+  ifelse(var == 'var_t'   || var == 'var_r',  titulo <- 'Variância média para',
+  ifelse(var == 'vicio_t' || var == 'vicio_r',titulo <- 'Vício médio para',
+  ifelse(var == 'eqm_t'   || var == 'eqm_r',  titulo <- 'EQM médio para',
+  ifelse(var == 'erro_t'  || var == 'erro_r', titulo <- 'Erro padrão médio para',
+  ifelse(var == 'prob_t'  || var == 'prob_r', titulo <- 'Probabilidade média da cobertura para',
+  ifelse(var == 'tam_t'   || var == 'tam_r',  titulo <- 'Tamanho médio da cobertura para'))))))
+    
+  ylab <- sub(' .*', '',titulo)
+  t2 <- 'por simulação'
+  ifelse(substr(var,nchar(var),nchar(var)) == 'r',
+         titulo <- as.expression(bquote(.(titulo) ~ rho ~ 'por simulação')),
+         titulo <- as.expression(bquote(.(titulo) ~ theta ~ 'por simulação')))  
+
+     
+        
+  if(var == 'prob_t' || var == 'prob_r') intercept <- 0.95
+  else intercept <- 0
+  
+  grafico <- ggplot(banco, aes(x = n, y = as.numeric(.data[[var]]), colour = simulacao, group = simulacao)) +
+    geom_line(linewidth =.9, alpha = 0.7, linetype = 'dashed')+
+    geom_point(size=2)+
+    xlab('Tamanho da amostra')+
+    ylab(ylab)+
+    ggtitle(titulo)+
+    theme_minimal()+
+    formato +
+    guides(colour = guide_legend(title = "Simulação"))+
+    scale_colour_manual(values=paleta)+
+    geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")
+  
+  
+  arquivo <- paste0('img/comparacoes/', var, '_', 'comparacao' , '.jpg')
+  ggsave(arquivo)
+  return(grafico)
+}
+comparacao_lineplot('vicio_t', resultados, paleta = paleta)
+
+comparacao_lineplot <- function(var, banco, xlab = 'Tamanho da amostra', paleta = paleta)
+{
+  
+  ifelse(var == 'var_t'   || var == 'var_r',  titulo <- 'Variância média para',
+         ifelse(var == 'vicio_t' || var == 'vicio_r',titulo <- 'Vício médio para',
+                ifelse(var == 'eqm_t'   || var == 'eqm_r',  titulo <- 'EQM médio para',
+                       ifelse(var == 'erro_t'  || var == 'erro_r', titulo <- 'Erro padrão médio para',
+                              ifelse(var == 'prob_t'  || var == 'prob_r', titulo <- 'Probabilidade média da cobertura para',
+                                     ifelse(var == 'tam_t'   || var == 'tam_r',  titulo <- 'Tamanho médio da cobertura para'))))))
+  
+  ylab <- sub(' .*', '',titulo)
+  t2 <- 'por simulação'
+  ifelse(substr(var,nchar(var),nchar(var)) == 'r',
+         titulo <- as.expression(bquote(.(titulo) ~ rho ~ 'por simulação')),
+         titulo <- as.expression(bquote(.(titulo) ~ theta ~ 'por simulação')))  
+  
+  
+  
+  if(var == 'prob_t' || var == 'prob_r') intercept <- 0.95
+  else intercept <- 0
+  
+  grafico <- ggplot(banco, aes(x = n, y = as.numeric(.data[[var]]), colour = simulacao, group = simulacao)) +
+    geom_line(linewidth =.9, alpha = 0.7, linetype = 'dashed')+
+    geom_point(size=2)+
+    xlab('Tamanho da amostra')+
+    ylab(ylab)+
+    ggtitle(titulo)+
+    theme_minimal()+
+    formato +
+    guides(colour = guide_legend(title = "Simulação"))+
+    scale_colour_manual(values=paleta)+
+    geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")
+  
+  
+  arquivo <- paste0('img/comparacoes/', var, '_', 'comparacao' , '.jpg')
+  ggsave(arquivo)
+  return(grafico)
+}
 
 # COMPARATIVO -------------------------------
 
@@ -1376,7 +1348,7 @@ resultados <- do.call(rbind,list(resultados_nelder,
 ))
 
 resultados$n <- factor(resultados$n, levels=c(seq(10, 100,10)))
-save(resultados, file = 'resultados.RData')
+save(resultados, file = 'RDatas\resultados.RData')
 
 library(ggplot2)
 library(gridExtra)
@@ -1387,182 +1359,122 @@ formato <- theme(
   axis.text.y = element_text(size = 10),
   axis.text.x = element_text(size = 10))
 
-paleta <- c("#662F00", "#996035", "#CC9B7A", '#D8AF97', '#449CCC')
+paleta <- c("#FF6F00", "#008EA0", "#8A4198", '#5A9599', '#1A5354', '#1A5354')
+
+
 
 par(mfrow = c(1,1))
 
 # Vício para theta
-ggplot(resultados, aes(x = n, y = as.numeric(vicio_t), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1.3, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Vício')+
-  ggtitle('Gráfico do vício para theta por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-ggsave('img/Vicio_theta.jpg')
+comparacao_lineplot('vicio_t', resultados, paleta = paleta)
 
 # Vício para rho
-ggplot(resultados, aes(x = n, y = as.numeric(vicio_r), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1.3, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Vício')+
-  ggtitle('Gráfico do vício para rho por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-
-ggsave('img/Vicio_rho.jpg')
+comparacao_lineplot('vicio_r', resultados, paleta = paleta)
 
 # eqm para theta
-ggplot(resultados, aes(x = n, y = as.numeric(eqm_t), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1.3, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('EQM')+
-  ggtitle('Gráfico do EQM para theta por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-ggsave('img/eqm_theta.jpg')
+comparacao_lineplot('eqm_t', resultados, paleta = paleta)
 
 # eqm para rho
-ggplot(resultados, aes(x = n, y = as.numeric(eqm_r), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1.3, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('EQM')+
-  ggtitle('Gráfico do EQM para rho por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-ggsave('img/eqm_rho.jpg')
+comparacao_lineplot('eqm_r', resultados, paleta = paleta)
 
 # erro para theta
-ggplot(resultados, aes(x = n, y = as.numeric(erro_t), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Erro')+
-  ggtitle('Gráfico do erro padrão para theta por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-ggsave('img/erro_theta.jpg')
+comparacao_lineplot('erro_t', resultados, paleta = paleta)
 
 # erro para rho
-ggplot(resultados, aes(x = n, y = as.numeric(erro_r), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Erro')+
-  ggtitle('Gráfico do erro padrão para rho por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-
-ggsave('img/erro_rho.jpg') 
+comparacao_lineplot('erro_r', resultados, paleta = paleta)
 
 # probabilidade de cobertura para theta
-ggplot(resultados, aes(x = n, y = as.numeric(prob_t), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Probabilidade')+
-  ggtitle('Gráfico da probabilidade de cobertura para theta por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0.95, col = 'red', linetype = 'dashed')
-
-ggsave('img/prob_theta.jpg')
+comparacao_lineplot('prob_t', resultados, paleta = paleta)
 
 # probabilidade de cobertura para rho
-ggplot(resultados, aes(x = n, y = as.numeric(prob_r), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Probabilidade')+
-  ggtitle('Gráfico da probabilidade de cobertura para rho por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0.95, col = 'red', linetype = 'dashed')
-
-ggsave('img/prob_rho.jpg')
+comparacao_lineplot('prob_r', resultados, paleta = paleta)
 
 # tamanho de cobertura para theta
-ggplot(resultados, aes(x = n, y = as.numeric(tam_t), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Cobertura')+
-  ggtitle('Gráfico do tamanho da cobertura para theta por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-ggsave('img/tamanho_theta.jpg')
+comparacao_lineplot('tam_t', resultados, paleta = paleta)
 
 # tamanho de cobertura para rho
-ggplot(resultados, aes(x = n, y = as.numeric(tam_r), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1, alpha = 0.7)+
-  geom_point(size=2)+
-  xlab('Tamanho da amostra')+
-  ylab('Cobertura')+
-  ggtitle('Gráfico do tamanho da cobertura para rho por simulação')+
-  theme_minimal()+
-  formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-
-ggsave('img/tamanho_rho.jpg')
+comparacao_lineplot('tam_r', resultados, paleta = paleta)
 
 
-# Gráficos redução variância ----------------------------------------------
+# Gráficos combinação de parâmetros---------------------------------------
 
-resultados_AA_lbfgs
-resultados_lbfgs
-teste <- rbind(resultados_AA_lbfgs, resultados_lbfgs)
-teste$n <-  factor(teste$n, levels=c(seq(10, 100,10)))
 
-ggplot(teste, aes(x = n, y = as.numeric(vicio_t), colour = simulacao, group = simulacao)) +
-  geom_line(linewidth =1.3, alpha = 0.7)+
+paleta2 <- c('#004586', '#FF420E', '#FFD320', '#579D1C', '#7E0021', '#83CAFF', '#FF950E', '#AECF00', '#DD4477')
+
+names(interno_bfgs)
+vicio <- ggplot(data = interno_bfgs, aes(x = n, y = as.numeric(vicio_t), colour = comb_par, group = comb_par)) +
+          geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+          geom_point(size=2)+
+          xlab('Tamanho da amostra')+
+          ylab('Vício')+
+          ggtitle('Gráfico do vício para theta - BFGS')+
+          theme_minimal()+
+          formato +
+          scale_colour_manual(values=paleta2)+
+          guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+          geom_hline(yintercept=0, col = 'red', linetype = "dotdash")
+var <- ggplot(data = interno_bfgs, aes(x = n, y = as.numeric(var_t), colour = comb_par, group = comb_par)) +
+  geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
   geom_point(size=2)+
   xlab('Tamanho da amostra')+
   ylab('Vício')+
-  ggtitle('Gráfico do vício para theta por simulação')+
+  ggtitle('Gráfico do vício para theta - BFGS')+
   theme_minimal()+
   formato +
-  guides(colour = guide_legend(title = "Simulação"))+
-  scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
-ggsave('img/vicio_theta_lbfgs.jpg')
+  scale_colour_manual(values=paleta2)+
+  guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+  geom_hline(yintercept=0, col = 'red', linetype = "dotdash")
+eqm <- ggplot(data = interno_bfgs, aes(x = n, y = as.numeric(eqm_t), colour = comb_par, group = comb_par)) +
+  geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Vício')+
+  ggtitle('Gráfico do vício para theta - BFGS')+
+  theme_minimal()+
+  formato +
+  scale_colour_manual(values=paleta2)+
+  guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+  geom_hline(yintercept=0, col = 'red', linetype = "dotdash")
+erro <- ggplot(data = interno_bfgs, aes(x = n, y = as.numeric(erro_t), colour = comb_par, group = comb_par)) +
+  geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Vício')+
+  ggtitle('Gráfico do vício para theta - BFGS')+
+  theme_minimal()+
+  formato +
+  scale_colour_manual(values=paleta2)+
+  guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+  geom_hline(yintercept=0, col = 'red', linetype = "dotdash")
+prob <- ggplot(data = interno_bfgs, aes(x = n, y = as.numeric(prob_t), colour = comb_par, group = comb_par)) +
+  geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Vício')+
+  ggtitle('Gráfico do vício para theta - BFGS')+
+  theme_minimal()+
+  formato +
+  scale_colour_manual(values=paleta2)+
+  guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+  geom_hline(yintercept=0.95, col = 'red', linetype = "dotdash")
+tam <- ggplot(data = interno_bfgs, aes(x = n, y = as.numeric(tam_t), colour = comb_par, group = comb_par)) +
+  geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+  geom_point(size=2)+
+  xlab('Tamanho da amostra')+
+  ylab('Vício')+
+  ggtitle('Gráfico do vício para theta - BFGS')+
+  theme_minimal()+
+  formato +
+  scale_colour_manual(values=paleta2)+
+  guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+  geom_hline(yintercept=0, col = 'red', linetype = "dotdash")
+
+library(gridExtra)
+library(lattice)
+c(tam, prob)
+str(tam)
+grid.arrange(var, erro, vicio, eqm, prob, tam, ncol=3, nrow = 2)
+
 
 ggplot(teste, aes(x = n, y = as.numeric(vicio_r), colour = simulacao, group = simulacao)) +
   geom_line(linewidth =1.3, alpha = 0.7)+
@@ -1574,7 +1486,7 @@ ggplot(teste, aes(x = n, y = as.numeric(vicio_r), colour = simulacao, group = si
   formato +
   guides(colour = guide_legend(title = "Simulação"))+
   scale_colour_manual(values=paleta)+
-  geom_hline(yintercept=0, col = 'red', linetype = 'dashed')
+  geom_hline(yintercept=0, col = 'red', linetype = "dotdash")
 ggsave('img/vicio_rho_lbfgs.jpg')
 
 ggplot(teste, aes(x = n, y = as.numeric(eqm_t), colour = simulacao, group = simulacao)) +
