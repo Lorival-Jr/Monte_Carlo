@@ -539,6 +539,21 @@ for (i in 1:N) # Número de simulações
 
 save(simulacoes_newton, file='simulacoes_newton.RData')
 
+simulacoes_newton[,8,,]  <-  simulacoes_newton[,1,,] - simulacoes_newton[,3,,]     # Vício de rho
+simulacoes_newton[,9,,]  <- (simulacoes_newton[,1,,] - simulacoes_newton[,3,,])^2 # EQM de rho
+simulacoes_newton[,10,,] <- (simulacoes_newton[,6,,])^0.5
+simulacoes_newton[,11,,] <- ((simulacoes_newton[,1,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,6,,])) < simulacoes_newton[,3,,]) & ((simulacoes_newton[,1,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,6,,])) > simulacoes_newton[,3,,]) # Prob cobertura rho
+
+simulacoes_newton[,12,,] <-  simulacoes_newton[,2,,] - simulacoes_newton[,4,,]
+simulacoes_newton[,13,,]  <- (simulacoes_newton[,2,,] - simulacoes_newton[,4,,])^2
+simulacoes_newton[,14,,] <- (simulacoes_newton[,7,,])^0.5
+simulacoes_newton[,15,,] <- ((simulacoes_newton[,2,,] - qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,7,,])) < simulacoes_newton[,4,,]) & ((simulacoes_newton[,2,,] + qnorm(1 - 0.05/2) * sqrt(simulacoes_newton[,7,,])) > simulacoes_newton[,4,,]) # Prob cobertura rho
+
+simulacoes_newton
+
+
+
+
 ### OPTIM - Simulações
 
 # Número de simulações (N): 50000.
@@ -1003,408 +1018,6 @@ simulacoes_sann
 
 save(simulacoes_sann, file = 'simulacoes_sann.RData')
 
-
-# Redução de Variância ----------------------------------------------------
-
-# A redução se dará via amostragem antitética
-
-library(LambertW)
-
-rlindley_geom_AA <- function(n, par)
-{
-  
-  u <- runif(n/2, min = 0, max = 1) 
-  values     <- qlindley_geom(u, par) 
-  values_inv <- qlindley_geom(1 - u, par) 
-  return(list(amostra1 = values, amostra2 = values_inv))
-  
-}
-cov(amostra[[1]], amostra[[2]])
-amostra <- rlindley_geom_AA(20, c(1,0.5));cor(amostra[[1]], amostra[[2]])
-
-
-# Método L-BFGS-B ---------------------------------------------------------
-
-library(LambertW)
-
-
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
-                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
-                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
-length(par_comb)
-N <- 50000
-
-AA_simulacoes_bfgs <- array(c(rep(0,6)), dim=c(N,13,9,10)) # COLUNAS, theta_op1, theta_op2, rho_op1, rho_op2, par1, par2, n, var_theta_op1, var_theta_op2, var_rho_op1, var_rho_op2, cov_theta, cov_rho
-AA_simulacoes_bfgs
-
-
-set.seed(9999)
-for (i in 1:N)                                  # Número de simulações
-{ 
-  for (index_n in 1:10)                         # Tamanho da amostra
-  { n <- seq(10, 100, 10)[index_n]
-  
-  for (index_par in 1:9)                         # Combinação de parâmetros
-  { par <- par_comb[[index_par]]
-  
-  correlacao <- 1
-  while(correlacao > 0)
-   { amostra <- rlindley_geom_AA(n, par=par)   # Amostra
-    amostra1 <- amostra$amostra1
-    amostra2 <- amostra$amostra2
-    correlacao <- cor(amostra1, amostra2)}
-  
-  
-  
-  op1      <- try(optim(par = par,            # Chute inicial
-                       fn = log_lindley_geometrica,  # Log-Verossimilhança
-                       x = amostra1,                  # Amostra
-                       control = list(fnscale = -1),
-                       method = 'BFGS',              # Método
-                       hessian = F                 # Calcular a hessiana
-  ))                 
-  
-  op2      <- try(optim(par = par,            # Chute inicial
-                        fn = log_lindley_geometrica,  # Log-Verossimilhança
-                        x = amostra2,                  # Amostra
-                        control = list(fnscale = -1),
-                        method = 'BFGS',          # Método
-                        hessian = F                # Calcular a hessiana
-
-  ))                 
-  
-  if(typeof(op2) == 'character' || typeof(op1) == 'character')
-  { valores <- c(NA, NA, NA, NA, par[1], par[2], n, rep(NA,6))
-  AA_simulacoes_lbfgs[i, ,index_par, index_n] <- valores
-  next}
-  
-  valores <- c(op1$par[1], op2$par[1],op1$par[2], op2$par[2], par[1], par[2], n, rep(NA,6))
-  # Valores recebe o que queremos dessa bagaça toda,
-  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-  
-  cat('itr:', i, '-' , valores, '\n')
-  AA_simulacoes_bfgs[i, ,index_par, index_n] <- valores
-  
-  }
-  }
-  
-}
-for(i in 1:10)
-{
-  for(j in 1:9)
-  {
-    matriz_theta <- cov(na.omit(AA_simulacoes_bfgs[,c(1,2),j,i]))
-    matriz_rho   <- cov(na.omit(AA_simulacoes_bfgs[,c(3,4),j,i]))
-    
-    
-    AA_simulacoes_bfgs[,8,j,i]  <- matriz_theta[1,1]
-    AA_simulacoes_bfgs[,9,j,i]  <- matriz_theta[2,2]
-    AA_simulacoes_bfgs[,10,j,i] <- matriz_rho[1,1]
-    AA_simulacoes_bfgs[,11,j,i] <- matriz_rho[2,2]
-    
-    AA_simulacoes_bfgs[,12,j,i] <- matriz_theta[1,2]
-    AA_simulacoes_bfgs[,13,j,i]<- matriz_rho[1,2]
-  }
-}
-
-
-
-AA_simulacoes_bfgs
-save(AA_simulacoes_bfgs, file = 'simulacoes_bfgs.RData')
-AA_dignostico_bfgs <- array(c(rep(0,6)), dim=c(N,13,9,10))   
-# n, Var_theta, Var_rho, vicio_theta, vicio_rho, eqm_theta, eqm_rho, erro_theta, erro_rho, prob_theta, prob_rho, tam_theta, tam_rho,
-
-AA_dignostico_bfgs[,1,,]  <- AA_simulacoes_lbfgs[,7,,]
-AA_dignostico_bfgs[,2,,]  <- (AA_simulacoes_lbfgs[,8,,] + AA_simulacoes_lbfgs[,9,,])*0.25 + 0.5*AA_simulacoes_lbfgs[,c(12),,]
-AA_dignostico_bfgs[,3,,]  <-  (AA_simulacoes_lbfgs[,10,,] + AA_simulacoes_lbfgs[,11,,])*0.25 + 0.5*AA_simulacoes_lbfgs[,c(13),,]
-AA_dignostico_bfgs[,4,,]  <- (AA_simulacoes_lbfgs[,1,,] + AA_simulacoes_lbfgs[,2,,])*0.5 - AA_simulacoes_lbfgs[,5,,]     # Vício de theta
-AA_dignostico_bfgs[,5,,]  <- (AA_simulacoes_lbfgs[,3,,] + AA_simulacoes_lbfgs[,4,,])*0.5 - AA_simulacoes_lbfgs[,6,,]     # Vício de rho
-AA_dignostico_bfgs[,6,,]  <- ((AA_simulacoes_lbfgs[,1,,] + AA_simulacoes_lbfgs[,2,,])*0.5 - AA_simulacoes_lbfgs[,5,,])^2 # EQM de rho
-AA_dignostico_bfgs[,7,,]  <- ((AA_simulacoes_lbfgs[,3,,] + AA_simulacoes_lbfgs[,4,,])*0.5 - AA_simulacoes_lbfgs[,6,,])^2 # EQM de rho
-AA_dignostico_bfgs[,8,,]  <- sqrt(AA_simulacoes_lbfgs[,2,,])  # Erro theta
-AA_dignostico_bfgs[,9,,]  <- sqrt(AA_simulacoes_lbfgs[,3,,])  # Erro rho
-AA_dignostico_bfgs[,10,,] <- (( mean(AA_simulacoes_lbfgs[,c(1,2),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,8,,]) < AA_simulacoes_lbfgs[,5,,]) & (( mean(AA_simulacoes_lbfgs[,c(1,2),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_bfgs[,8,,]) > AA_simulacoes_lbfgs[,5,,]) # Prob cobertura theta
-AA_dignostico_bfgs[,11,,] <- (( mean(AA_simulacoes_lbfgs[,c(3,4),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,9,,]) < AA_simulacoes_lbfgs[,6,,]) & (( mean(AA_simulacoes_lbfgs[,c(3,4),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_bfgs[,9,,]) > AA_simulacoes_lbfgs[,6,,]) # Prob cobertura rho
-AA_dignostico_bfgs[,12,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,8,,] # Tam_t
-AA_dignostico_bfgs[,13,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,9,,] # Tam_r
-AA_dignostico_bfgs
-
-
-
-save(AA_simulacoes_bfgs,  file = 'AA_simulacoes_bfgs.Rdata')
-save(AA_dignostico_bfgs, file = 'AA_dignostico_bfgs.Rdata')
-
-AA_simulacoes_lbfgs[,7,1,]
-simulacoes_bfgs[,7,,]
-
-
-
-
-AA_simulacoes_lbfgs[,,2,3]
-
-# Método L-BFGS-B ---------------------------------------------------------
-
-library(LambertW)
-
-
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
-                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
-                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
-length(par_comb)
-N <- 50
-
-AA_simulacoes_lbfgs <- array(c(rep(0,6)), dim=c(N,13,9,10)) # COLUNAS, theta_op1, theta_op2, rho_op1, rho_op2, par1, par2, n, var_theta_op1, var_theta_op2, var_rho_op1, var_rho_op2, cov_theta, cov_rho
-AA_simulacoes_lbfgs
-
-
-set.seed(9999)
-for (i in 1:N)                                  # Número de simulações
-{ 
-  for (index_n in 1:10)                         # Tamanho da amostra
-  { n <- seq(10, 100, 10)[index_n]
-  
-  for (index_par in 1:9)                         # Combinação de parâmetros
-  { par <- par_comb[[index_par]]
-  amostra <- rlindley_geom_AA(n, par=par)   # Amostra
-  amostra1 <- amostra$amostra1
-  amostra2 <- amostra$amostra2
-  
-  op1      <-  try(optim(par = par,            # Chute inicial
-                         fn = log_lindley_geometrica,  # Log-Verossimilhança
-                         x = amostra1,                  # Amostra
-                         control = list(fnscale = -1),
-                         method = 'L-BFGS-B',          # Método
-                         lower = c(0.000001,  0.000001),
-                         upper = c(100, 0.999999)
-  ))                   
-  
-  
-  op2      <-  try(optim(par = par,            # Chute inicial
-                         fn = log_lindley_geometrica,  # Log-Verossimilhança
-                         x = amostra2,                  # Amostra
-                         control = list(fnscale = -1),
-                         method = 'L-BFGS-B',          # Método
-                         lower = c(0.000001,  0.000001),
-                         upper = c(100, 0.999999)
-  ))                   
-  
-  
-  if(typeof(op2) == 'character' || typeof(op1) == 'character')
-  { valores <- c(NA, NA, NA, NA, par[1], par[2], n, rep(NA,6))
-  AA_simulacoes_lbfgs[i, ,index_par, index_n] <- valores
-  next}
-  
-  
-  valores <- c(op1$par[1], op2$par[1],op1$par[2], op2$par[2], par[1], par[2], n, rep(NA,6))
-  # Valores recebe o que queremos dessa bagaça toda,
-  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-  
-  cat('itr:', i, '-' , valores, '\n')
-  AA_simulacoes_lbfgs[i, ,index_par, index_n] <- valores
-  
-  }
-  }
-  
-}
-
-cov(na.omit(AA_simulacoes_lbfgs[,c(1,2),1,1]))
-
-for(i in 1:10)
-{
-  for(j in 1:9)
-  {
-    matriz_theta <- cov(na.omit(AA_simulacoes_lbfgs[,c(1,2),j,i]))
-    matriz_rho   <- cov(na.omit(AA_simulacoes_lbfgs[,c(3,4),j,i]))
-    
-    
-    AA_simulacoes_lbfgs[,8,j,i]  <- matriz_theta[1,1]
-    AA_simulacoes_lbfgs[,9,j,i]  <- matriz_theta[2,2]
-    AA_simulacoes_lbfgs[,10,j,i] <- matriz_rho[1,1]
-    AA_simulacoes_lbfgs[,11,j,i] <- matriz_rho[2,2]
-    
-    AA_simulacoes_lbfgs[,12,j,i] <- matriz_theta[1,2]
-    AA_simulacoes_lbfgs[,13,j,i]<- matriz_rho[1,2]
-  }
-}
-
-AA_simulacoes_lbfgs
-save(AA_simulacoes_lbfgs, file= 'AA_simulacoes_lbfgs.RData')
-AA_dignostico_lbfgs <- array(c(rep(0,6)), dim=c(N,13,9,10))   
-# n, Var_theta, Var_rho, vicio_theta, vicio_rho, eqm_theta, eqm_rho, erro_theta, erro_rho, prob_theta, prob_rho, tam_theta, tam_rho,
-
-AA_dignostico_lbfgs[,1,,]  <- AA_simulacoes_lbfgs[,7,,] # n
-AA_dignostico_lbfgs[,2,,]  <- (AA_simulacoes_lbfgs[,8,,] + AA_simulacoes_lbfgs[,9,,])*0.25 + 0.5*AA_simulacoes_lbfgs[,c(12),,] # var theta
-AA_dignostico_lbfgs[,3,,]  <-  (AA_simulacoes_lbfgs[,10,,] + AA_simulacoes_lbfgs[,11,,])*0.25 + 0.5*AA_simulacoes_lbfgs[,c(13),,] # var rho
-AA_dignostico_lbfgs[,4,,]  <- (AA_simulacoes_lbfgs[,1,,] + AA_simulacoes_lbfgs[,2,,])*0.5 - AA_simulacoes_lbfgs[,5,,]     # Vício de theta
-AA_dignostico_lbfgs[,5,,]  <- (AA_simulacoes_lbfgs[,3,,] + AA_simulacoes_lbfgs[,4,,])*0.5 - AA_simulacoes_lbfgs[,6,,]     # Vício de rho
-AA_dignostico_lbfgs[,6,,]  <- ((AA_simulacoes_lbfgs[,1,,] + AA_simulacoes_lbfgs[,2,,])*0.5 - AA_simulacoes_lbfgs[,5,,])^2 # EQM de theta
-AA_dignostico_lbfgs[,7,,]  <- ((AA_simulacoes_lbfgs[,3,,] + AA_simulacoes_lbfgs[,4,,])*0.5 - AA_simulacoes_lbfgs[,6,,])^2 # EQM de rho
-AA_dignostico_lbfgs[,8,,]  <- sqrt(AA_simulacoes_lbfgs[,2,,])  # Erro theta
-AA_dignostico_lbfgs[,9,,]  <- sqrt(AA_simulacoes_lbfgs[,3,,])  # Erro rho
-
-AA_dignostico_lbfgs[,10,,] <- (( mean(AA_simulacoes_lbfgs[,c(1,2),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_lbfgs[,8,,]) < AA_simulacoes_lbfgs[,5,,]) & (( mean(AA_simulacoes_lbfgs[,c(1,2),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_lbfgs[,8,,]) > AA_simulacoes_lbfgs[,5,,]) # Prob cobertura theta
-
-AA_dignostico_lbfgs[,11,,] <- (( mean(AA_simulacoes_lbfgs[,c(3,4),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_lbfgs[,9,,]) < AA_simulacoes_lbfgs[,6,,]) & (( mean(AA_simulacoes_lbfgs[,c(3,4),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_lbfgs[,9,,]) > AA_simulacoes_lbfgs[,6,,]) # Prob cobertura rho
-
-
-AA_dignostico_lbfgs[,12,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_lbfgs[,8,,] # Tam_t
-AA_dignostico_lbfgs[,13,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_lbfgs[,9,,] # Tam_r
-AA_dignostico_lbfgs
-
-
-
-save(AA_simulacoes_lbfgs,  file = 'AA_simulacoes_lbfgs.Rdata')
-save(AA_dignostico_lbfgs, file = 'diagnostico_AA_lbfgs.Rdata')
-
-AA_simulacoes_lbfgs[,7,1,]
-simulacoes_bfgs[,7,,]
-
-
-
-
-AA_simulacoes_lbfgs[,,2,3]
-
-
-# Método NELDER ---------------------------------------------------------
-
-library(LambertW)
-
-
-par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
-                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
-                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
-length(par_comb)
-N <- 50000
-
-AA_simulacoes_nelder <- array(c(rep(0,6)), dim=c(N,13,9,10)) # COLUNAS, theta_op1, theta_op2, rho_op1, rho_op2, par1, par2, n, var_theta_op1, var_theta_op2, var_rho_op1, var_rho_op2, cov_theta, cov_rho
-AA_simulacoes_nelder
-
-
-set.seed(9999)
-for (i in 1:N)                                  # Número de simulações
-{ 
-  for (index_n in 1:10)                         # Tamanho da amostra
-  { n <- seq(10, 100, 10)[index_n]
-  
-  for (index_par in 1:9)                         # Combinação de parâmetros
-  { par <- par_comb[[index_par]]
-  
-  correlacao <- 1
-  while(correlacao > 0)
-  { amostra <- rlindley_geom_AA(n, par=par)   # Amostra
-  amostra1 <- amostra$amostra1
-  amostra2 <- amostra$amostra2
-  correlacao <- cor(amostra1, amostra2)}
-  
-  
-  
-  op1      <- try(optim(par = par,            # Chute inicial
-                        fn = log_lindley_geometrica,  # Log-Verossimilhança
-                        x = amostra1,                  # Amostra
-                        control = list(fnscale = -1),
-                        method = 'Nelder-Mead',          # Método
-                        hessian = T
-  ))                 
-  
-  if(typeof(op1) == 'character')
-  { op1      <-  try(optim(par = par,            # Chute inicial
-                           fn = log_lindley_geometrica,  # Log-Verossimilhança
-                           x = amostra1,                  # Amostra
-                           control = list(fnscale = 1),
-                           method = 'Nelder-Mead'         # Método
-                          
-  ))                   
-  }
-  
-  op2      <- try(optim(par = par,            # Chute inicial
-                        fn = log_lindley_geometrica,  # Log-Verossimilhança
-                        x = amostra2,                  # Amostra
-                        control = list(fnscale = -1),
-                        method = 'Nelder-Mead',          # Método
-                        hessian = T                 # Calcular a hessiana
-                        
-  ))                 
-  
-  if(typeof(op2) == 'character')
-  { op2      <-  try(optim(par = par,            # Chute inicial
-                           fn = log_lindley_geometrica,  # Log-Verossimilhança
-                           x = amostra2,                  # Amostra
-                           control = list(fnscale = 1),
-                           method = 'Nelder-Mead'
-  ))                   
-  }
-  
-  if(typeof(op2) == 'character' || typeof(op1) == 'character')
-  { valores <- c(NA, NA, NA, NA, par[1], par[2], n, rep(NA,6))
-  AA_simulacoes_nelder[i, ,index_par, index_n] <- valores
-  next}
-  
-  h1 <- try(-diag(solve(op1$hessian)))              # Tenta inverter a hessiana
-  h2 <- try(-diag(solve(op2$hessian)))              # Tenta inverter a hessiana
-  
-  
-  if(typeof(h1) == 'character' || typeof(h2) == 'character') {h <- c(NA, NA, NA, NA)}  
-  else
-  {
-    h <- c(h1[1], h2[1], h1[2], h2[2])
-  }
-  
-  valores <- c(op1$par[1], op2$par[1],op1$par[2], op2$par[2], par[1], par[2], n, h, NA, NA)
-  # Valores recebe o que queremos dessa bagaça toda,
-  # theta_estimado, rho_estimado, theta_real, rho_real, n, se convergiu(0 = sim), variância_rho, variância_theta
-  
-  cat('itr:', i, '-' , valores, '\n')
-  AA_simulacoes_nelder[i, ,index_par, index_n] <- valores
-  
-  }
-  }
-  
-}
-save(AA_simulacoes_nelder, file = 'AA_simulacoes_nelder.RData')
-for(i in 1:10)
-{
-  for(j in 1:9)
-  {
-    AA_simulacoes_nelder[,12,j,i] <- cov(na.omit(AA_simulacoes_nelder[,1,j,i]), na.omit(AA_simulacoes_nelder[,2,j,i]))
-    AA_simulacoes_nelder[,13,j,i] <- cov(na.omit(AA_simulacoes_nelder[,3,j,i]), na.omit(AA_simulacoes_nelder[,4,j,i]))
-  }
-}
-
-for(i in 1:10)
-{
-  
-  AA_simulacoes_nelder[,12,,i] <-apply(cov(na.omit(AA_simulacoes_nelder[,1,,i]), na.omit(AA_simulacoes_nelder[,2,,i])), MARGIN = 2, FUN= mean)
-  AA_simulacoes_nelder[,13,,i] <- apply(cov(na.omit(AA_simulacoes_nelder[,3,,i]), na.omit(AA_simulacoes_nelder[,4,,i])), MARGIN = 2, FUN= mean)
-  
-}
-
-
-AA_simulacoes_nelder
-save(AA_simulacoes_lbfgs, file= 'AA_simulacoes_lbfgs.RData')
-AA_dignostico_nelder <- array(c(rep(0,6)), dim=c(N,13,9,10))   
-# n, Var_theta, Var_rho, vicio_theta, vicio_rho, eqm_theta, eqm_rho, erro_theta, erro_rho, prob_theta, prob_rho, tam_theta, tam_rho,
-
-AA_dignostico_nelder[,1,,]  <- AA_simulacoes_nelder[,7,,]
-AA_dignostico_nelder[,2,,]  <- (AA_simulacoes_nelder[,8,,] + AA_simulacoes_nelder[,9,,])*0.25 + 0.5*AA_simulacoes_nelder[,c(12),,]
-AA_dignostico_nelder[,3,,]  <-  (AA_simulacoes_nelder[,10,,] + AA_simulacoes_nelder[,11,,])*0.25 + 0.5*AA_simulacoes_nelder[,c(13),,]
-AA_dignostico_nelder[,4,,]  <- (AA_simulacoes_nelder[,1,,] + AA_simulacoes_nelder[,2,,])*0.5 - AA_simulacoes_nelder[,5,,]     # Vício de theta
-AA_dignostico_nelder[,5,,]  <- (AA_simulacoes_nelder[,3,,] + AA_simulacoes_nelder[,4,,])*0.5 - AA_simulacoes_nelder[,6,,]     # Vício de rho
-AA_dignostico_nelder[,6,,]  <- ((AA_simulacoes_nelder[,1,,] + AA_simulacoes_nelder[,2,,])*0.5 - AA_simulacoes_nelder[,5,,])^2 # EQM de rho
-AA_dignostico_nelder[,7,,]  <- ((AA_simulacoes_nelder[,3,,] + AA_simulacoes_nelder[,4,,])*0.5 - AA_simulacoes_nelder[,6,,])^2 # EQM de rho
-AA_dignostico_nelder[,8,,]  <- sqrt(AA_simulacoes_nelder[,2,,])  # Erro theta
-AA_dignostico_nelder[,9,,]  <- sqrt(AA_simulacoes_nelder[,3,,])  # Erro rho
-AA_dignostico_nelder[,10,,] <- (( mean(AA_simulacoes_nelder[,c(1,2),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_nelder[,8,,]) < AA_simulacoes_nelder[,5,,]) & (( mean(AA_simulacoes_nelder[,c(1,2),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_nelder[,8,,]) > AA_simulacoes_nelder[,5,,]) # Prob cobertura theta
-AA_dignostico_nelder[,11,,] <- (( mean(AA_simulacoes_nelder[,c(3,4),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_nelder[,9,,]) < AA_simulacoes_nelder[,6,,]) & (( mean(AA_simulacoes_nelder[,c(3,4),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_nelder[,9,,]) > AA_simulacoes_nelder[,6,,]) # Prob cobertura rho
-AA_dignostico_nelder[,12,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_nelder[,8,,] # Tam_t
-AA_dignostico_nelder[,13,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_nelder[,9,,] # Tam_r
-AA_dignostico_nelder
-
-
-
-save(AA_simulacoes_lbfgs,  file = 'AA_simulacoes_lbfgs.Rdata')
-save(AA_dignostico_lbfgs, file = 'AA_dignostico_lbfgs.Rdata')
-
-
 # Os Resultados -----------------------------------------------------------
 
 load('RDatas/simulacoes_nelder.RData')
@@ -1412,6 +1025,7 @@ load('RDatas/simulacoes_bfgs.RData')
 load('RDatas/simulacoes_lbfgs.RData')
 load('RDatas/simulacoes_sann.RData')
 load('RDatas/simulacoes_cg.RData')
+load('RDatas/simulacoes_newton.RData')
 load('AA_simulacoes_lbfgs.Rdata')
 
 
@@ -1875,7 +1489,7 @@ graficos_comb_par(interno_sann, 'SANN')
 graficos_comb_par(interno_sann, 'SANN',bi = T)
 # Newton --------------
 graficos_comb_par(interno_newton, 'NR')
-
+graficos_comb_par(interno_newton, 'NR', bi = T)
 
 
 a <- comb_par_lineplot('var_r', interno_cg, 'CG', arquivo = 'teste.jpg')

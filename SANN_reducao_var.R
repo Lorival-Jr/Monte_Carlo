@@ -21,7 +21,9 @@ log_lindley_geometrica <- function(x, par) # par[1] será theta, par[2] é o p
   
 }
 
-lindley_geom <- function(u, par)
+
+
+qlindley_geom <- function(u, par)
   
 {
   e           <- exp(-par[1] - 1)
