@@ -326,7 +326,7 @@ for (i in 1:N)                                  # Número de simulações
   
   if(typeof(op2) == 'character' || typeof(op1) == 'character')
   { valores <- c(NA, NA, NA, NA, par[1], par[2], n, rep(NA,6))
-  AA_simulacoes_lbfgs[i, ,index_par, index_n] <- valores
+  AA_simulacoes_bfgs[i, ,index_par, index_n] <- valores
   next}
   
   valores <- c(op1$par[1], op2$par[1],op1$par[2], op2$par[2], par[1], par[2], n, rep(NA,6))
@@ -340,6 +340,9 @@ for (i in 1:N)                                  # Número de simulações
   }
   
 }
+load('Rdatas/red_var/AA_simulacoes_bfgs.Rdata')
+AA_simulacoes_bfgs[50000,,,]
+AA_simulacoes_bfgs
 for(i in 1:10)
 {
   for(j in 1:9)
@@ -365,17 +368,17 @@ save(AA_simulacoes_bfgs, file = 'RDatas/AA_simulacoes_bfgs.RData')
 AA_dignostico_bfgs <- array(c(rep(0,6)), dim=c(N,13,9,10))   
 # n, Var_theta, Var_rho, vicio_theta, vicio_rho, eqm_theta, eqm_rho, erro_theta, erro_rho, prob_theta, prob_rho, tam_theta, tam_rho,
 load('RDatas/AA_simulacoes_bfgs.RData')
-AA_dignostico_bfgs[,1,,]  <- AA_simulacoes_lbfgs[,7,,]
-AA_dignostico_bfgs[,2,,]  <- (AA_simulacoes_lbfgs[,8,,] + AA_simulacoes_lbfgs[,9,,])*0.25 + 0.5*AA_simulacoes_lbfgs[,c(12),,]
-AA_dignostico_bfgs[,3,,]  <-  (AA_simulacoes_lbfgs[,10,,] + AA_simulacoes_lbfgs[,11,,])*0.25 + 0.5*AA_simulacoes_lbfgs[,c(13),,]
-AA_dignostico_bfgs[,4,,]  <- (AA_simulacoes_lbfgs[,1,,] + AA_simulacoes_lbfgs[,2,,])*0.5 - AA_simulacoes_lbfgs[,5,,]     # Vício de theta
-AA_dignostico_bfgs[,5,,]  <- (AA_simulacoes_lbfgs[,3,,] + AA_simulacoes_lbfgs[,4,,])*0.5 - AA_simulacoes_lbfgs[,6,,]     # Vício de rho
-AA_dignostico_bfgs[,6,,]  <- ((AA_simulacoes_lbfgs[,1,,] + AA_simulacoes_lbfgs[,2,,])*0.5 - AA_simulacoes_lbfgs[,5,,])^2 # EQM de rho
-AA_dignostico_bfgs[,7,,]  <- ((AA_simulacoes_lbfgs[,3,,] + AA_simulacoes_lbfgs[,4,,])*0.5 - AA_simulacoes_lbfgs[,6,,])^2 # EQM de rho
-AA_dignostico_bfgs[,8,,]  <- sqrt(AA_simulacoes_lbfgs[,2,,])  # Erro theta
-AA_dignostico_bfgs[,9,,]  <- sqrt(AA_simulacoes_lbfgs[,3,,])  # Erro rho
-AA_dignostico_bfgs[,10,,] <- (( mean(AA_simulacoes_lbfgs[,c(1,2),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,8,,]) < AA_simulacoes_lbfgs[,5,,]) & (( mean(AA_simulacoes_lbfgs[,c(1,2),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_bfgs[,8,,]) > AA_simulacoes_lbfgs[,5,,]) # Prob cobertura theta
-AA_dignostico_bfgs[,11,,] <- (( mean(AA_simulacoes_lbfgs[,c(3,4),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,9,,]) < AA_simulacoes_lbfgs[,6,,]) & (( mean(AA_simulacoes_lbfgs[,c(3,4),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_bfgs[,9,,]) > AA_simulacoes_lbfgs[,6,,]) # Prob cobertura rho
+AA_dignostico_bfgs[,1,,]  <- AA_simulacoes_bfgs[,7,,]
+AA_dignostico_bfgs[,2,,]  <- (AA_simulacoes_bfgs[,8,,] + AA_simulacoes_bfgs[,9,,])*0.25 + 0.5*AA_simulacoes_bfgs[,c(12),,]
+AA_dignostico_bfgs[,3,,]  <-  (AA_simulacoes_bfgs[,10,,] + AA_simulacoes_bfgs[,11,,])*0.25 + 0.5*AA_simulacoes_bfgs[,c(13),,]
+AA_dignostico_bfgs[,4,,]  <- (AA_simulacoes_bfgs[,1,,] + AA_simulacoes_bfgs[,2,,])*0.5 - AA_simulacoes_bfgs[,5,,]     # Vício de theta
+AA_dignostico_bfgs[,5,,]  <- (AA_simulacoes_bfgs[,3,,] + AA_simulacoes_bfgs[,4,,])*0.5 - AA_simulacoes_bfgs[,6,,]     # Vício de rho
+AA_dignostico_bfgs[,6,,]  <- ((AA_simulacoes_bfgs[,1,,] + AA_simulacoes_bfgs[,2,,])*0.5 - AA_simulacoes_bfgs[,5,,])^2 # EQM de rho
+AA_dignostico_bfgs[,7,,]  <- ((AA_simulacoes_bfgs[,3,,] + AA_simulacoes_bfgs[,4,,])*0.5 - AA_simulacoes_bfgs[,6,,])^2 # EQM de rho
+AA_dignostico_bfgs[,8,,]  <- sqrt(AA_simulacoes_bfgs[,2,,])  # Erro theta
+AA_dignostico_bfgs[,9,,]  <- sqrt(AA_simulacoes_bfgs[,3,,])  # Erro rho
+AA_dignostico_bfgs[,10,,] <- (( mean(AA_simulacoes_bfgs[,c(1,2),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,8,,]) < AA_simulacoes_bfgs[,5,,]) & (( mean(AA_simulacoes_bfgs[,c(1,2),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_bfgs[,8,,]) > AA_simulacoes_bfgs[,5,,]) # Prob cobertura theta
+AA_dignostico_bfgs[,11,,] <- (( mean(AA_simulacoes_bfgs[,c(3,4),,], na.rm=T) - qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,9,,]) < AA_simulacoes_bfgs[,6,,]) & (( mean(AA_simulacoes_bfgs[,c(3,4),,], na.rm=T) + qnorm(1 - 0.05/2) *AA_dignostico_bfgs[,9,,]) > AA_simulacoes_bfgs[,6,,]) # Prob cobertura rho
 AA_dignostico_bfgs[,12,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,8,,] # Tam_t
 AA_dignostico_bfgs[,13,,] <- 2 * qnorm(1 - 0.05/2) * AA_dignostico_bfgs[,9,,] # Tam_r
 AA_dignostico_bfgs
@@ -745,16 +748,27 @@ save(AA_dignostico_sann, file = 'AA_dignostico_sann.Rdata')
 
 # Newton ------------
 load('Rdatas/simulacoes_newton.Rdata')
+load('Rdatas/red_var/AA_dignostico_newton.Rdata')
 AA_interno_newton <- gera_resultados(AA_dignostico_newton, 'interna', nome_simulacao = 'Com redução', red_var = T)
 interno_newton    <- gera_resultados(simulacoes_newton, 'interna', nome_simulacao = 'Sem redução')
+
+AA_ext_newton <- gera_resultados(AA_dignostico_newton, 'externa', nome_simulacao = 'Com redução', red_var = T)
+ext_newton    <- gera_resultados(simulacoes_newton, 'externa', nome_simulacao = 'Sem redução')
+
+r_ext_newton_AA      <- agrupa_resultados(list(ext_newton, AA_ext_newton))
 resultados_newton_AA <- agrupa_resultados(list(interno_newton, AA_interno_newton))
 save(resultados_newton_AA, file ='Rdatas/red_var/resultados/resultados_newton_AA.Rdata')
-
+save(r_ext_newton_AA, file ='Rdatas/red_var/resultados/comparacao/resultados_newton_AA.Rdata')
 # Nelder ------------
 load('Rdatas/simulacoes_nelder.Rdata')
 load('Rdatas/red_var/AA_dignostico_nelder.Rdata')
 AA_interno_nelder <- gera_resultados(AA_dignostico_nelder, 'interna', nome_simulacao = 'Com redução', red_var = T)
 interno_nelder    <- gera_resultados(simulacoes_nelder, 'interna', nome_simulacao = 'Sem redução')
+
+AA_ext_nelder <- gera_resultados(AA_dignostico_nelder, 'externa', nome_simulacao = 'Com redução', red_var = T)
+ext_nelder    <- gera_resultados(simulacoes_nelder,    'externa', nome_simulacao = 'Sem redução')
+
+r_ext_nelder_AA      <- agrupa_resultados(list(ext_nelder, AA_ext_nelder))
 resultados_nelder_AA <- agrupa_resultados(list(interno_nelder, AA_interno_nelder))
 save(resultados_nelder_AA, file ='Rdatas/red_var/resultados/resultados_nelder_AA.Rdata')
 
@@ -763,6 +777,11 @@ load('Rdatas/simulacoes_bfgs.Rdata')
 load('Rdatas/red_var/AA_dignostico_bfgs.Rdata')
 AA_interno_bfgs <- gera_resultados(AA_dignostico_bfgs, 'interna', nome_simulacao = 'Com redução', red_var = T)
 interno_bfgs    <- gera_resultados(simulacoes_bfgs, 'interna', nome_simulacao = 'Sem redução')
+
+AA_ext_bfgs   <- gera_resultados(AA_dignostico_bfgs, 'externa', nome_simulacao = 'Com redução', red_var = T)
+ext_bfgs      <- gera_resultados(simulacoes_bfgs, 'externa', nome_simulacao = 'Sem redução')
+
+r_ext_bfgs_AA      <- agrupa_resultados(list(ext_bfgs, AA_ext_bfgs))
 resultados_bfgs_AA <- agrupa_resultados(list(interno_bfgs, AA_interno_bfgs))
 save(resultados_bfgs_AA, file ='Rdatas/red_var/resultados/resultados_bfgs_AA.Rdata')
 
@@ -770,6 +789,11 @@ save(resultados_bfgs_AA, file ='Rdatas/red_var/resultados/resultados_bfgs_AA.Rda
 load('Rdatas/simulacoes_lbfgs.Rdata')
 AA_interno_lbfgs <- gera_resultados(AA_dignostico_lbfgs, 'interna', nome_simulacao = 'Com redução', red_var = T)
 interno_lbfgs    <- gera_resultados(simulacoes_lbfgs, 'interna', nome_simulacao = 'Sem redução')
+
+AA_ext_lbfgs   <- gera_resultados(AA_dignostico_lbfgs, 'externa', nome_simulacao = 'Com redução', red_var = T)
+ext_lbfgs      <- gera_resultados(simulacoes_lbfgs, 'externa', nome_simulacao = 'Sem redução')
+
+r_ext_lbfgs_AA      <- agrupa_resultados(list(ext_lbfgs, AA_ext_lbfgs))
 resultados_lbfgs_AA <- agrupa_resultados(list(interno_lbfgs, AA_interno_lbfgs))
 save(resultados_lbfgs_AA, file ='Rdatas/red_var/resultados/resultados_lbfgs_AA.Rdata')
 
@@ -777,14 +801,24 @@ save(resultados_lbfgs_AA, file ='Rdatas/red_var/resultados/resultados_lbfgs_AA.R
 load('Rdatas/simulacoes_cg.Rdata')
 AA_interno_cg <- gera_resultados(AA_dignostico_cg, 'interna', nome_simulacao = 'Com redução', red_var = T)
 interno_cg    <- gera_resultados(simulacoes_cg, 'interna', nome_simulacao = 'Sem redução')
+
+AA_ext_cg   <- gera_resultados(AA_dignostico_cg, 'externa', nome_simulacao = 'Com redução', red_var = T)
+ext_cg      <- gera_resultados(simulacoes_cg, 'externa', nome_simulacao = 'Sem redução')
+
+r_ext_cg_AA      <- agrupa_resultados(list(ext_cg, AA_ext_cg))
 resultados_cg_AA <- agrupa_resultados(list(interno_cg, AA_interno_cg))
 save(resultados_cg_AA, file ='Rdatas/red_var/resultados/resultados_cg_AA.Rdata')
 
 # SANN -------------
 load('Rdatas/simulacoes_sann.Rdata')
 load('Rdatas/red_var/AA_diagnostico_sann.Rdata')
-AA_interno_sann <- gera_resultados(AA_diagnostico_sann.Rdata, 'interna', nome_simulacao = 'Com redução', red_var = T)
-interno_sann    <- gera_resultados(simulacoes_sann.Rdata, 'interna', nome_simulacao = 'Sem redução')
+AA_interno_sann <- gera_resultados(AA_diagnostico_sann, 'interna', nome_simulacao = 'Com redução', red_var = T)
+interno_sann    <- gera_resultados(simulacoes_sann, 'interna', nome_simulacao = 'Sem redução')
+
+AA_ext_sann   <- gera_resultados(AA_dignostico_sann, 'externa', nome_simulacao = 'Com redução', red_var = T)
+ext_sann      <- gera_resultados(simulacoes_sann.Rdata, 'externa', nome_simulacao = 'Sem redução')
+
+r_ext_sann_AA      <- agrupa_resultados(list(ext_sann, AA_ext_sann))
 resultados_sann_AA <- agrupa_resultados(list(interno_sann, AA_interno_sann))
 save(resultados_sann_AA, file ='Rdatas/red_var/resultados/resultados_sann_AA.Rdata')
 
@@ -805,38 +839,36 @@ resultados_bfgs_AA
 
 
 
-reducao_lineplot <- function(var, banco, simulacao, xlab = 'Tamanho da amostra', paleta = NULL)
+reducao_lineplot <- function(var, banco, simulacao, xlab = 'Tamanho da amostra', paleta = NULL, reducao = F)
 {
   
+
   
+  ifelse(var == 'var_t'   || var == 'var_r',  titulo <- 'Variância para',
+  ifelse(var == 'vicio_t' || var == 'vicio_r',titulo <- 'Vício para',
+  ifelse(var == 'eqm_t'   || var == 'eqm_r',  titulo <- 'EQM para',
+  ifelse(var == 'erro_t'  || var == 'erro_r', titulo <- 'Erro padrão para',
+  ifelse(var == 'prob_t'  || var == 'prob_r', titulo <- 'Prob. da cobertura para',
+  ifelse(var == 'tam_t'   || var == 'tam_r',  titulo <- 'Tam. da cobertura para'))))))
   
-  ifelse(var == 'var_t'   || var == 'var_r',  titulo <- 'Variância média para',
-         ifelse(var == 'vicio_t' || var == 'vicio_r',titulo <- 'Vício médio para',
-                ifelse(var == 'eqm_t'   || var == 'eqm_r',  titulo <- 'EQM médio para',
-                       ifelse(var == 'erro_t'  || var == 'erro_r', titulo <- 'Erro padrão médio para',
-                              ifelse(var == 'prob_t'  || var == 'prob_r', titulo <- 'Probabilidade média da cobertura para',
-                                     ifelse(var == 'tam_t'   || var == 'tam_r',  titulo <- 'Tamanho médio da cobertura para'))))))
+
+  if(reducao == F) fim_titulo <- '(S/ Redução)'
+  else             fim_titulo <- '(C/ Redução)'
   
-  ylab <- sub(' .*', '',titulo)
   ifelse(substr(var,nchar(var),nchar(var)) == 'r',
-         titulo <- as.expression(bquote(.(titulo) ~ rho)),
-         titulo <- as.expression(bquote(.(titulo) ~ theta)))  
-  
-  
-  reducao <- unique(banco$simulacao)
-  banco1  <- banco[banco$simulacao == reducao[1],]
-  banco2  <- banco[banco$simulacao == reducao[2],]
+         titulo <- as.expression(bquote(.(titulo) ~ rho   ~ .(fim_titulo))),
+         titulo <- as.expression(bquote(.(titulo) ~ theta ~ .(fim_titulo))))  
   
   if(is.null(paleta)) paleta <- c('#004586', '#FF420E', '#FFD320', '#579D1C', '#7E0021', '#83CAFF', '#FF950E', '#AECF00', '#DD4477')     
   
   if(var == 'prob_t' || var == 'prob_r') intercept <- 0.95
   else intercept <- 0
   
-  grafico1 <- ggplot(data = banco1, aes(x = n, y = as.numeric(.data[[var]]), colour = comb_par, group = comb_par)) +
+  grafico <- ggplot(data = banco, aes(x = n, y = as.numeric(.data[[var]]), colour = comb_par, group = comb_par)) +
     geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
     geom_point(size=2)+
     xlab(xlab)+
-    ylab(ylab)+
+    ylab('')+
     ggtitle(titulo)+
     theme_minimal()+
     formato +
@@ -844,35 +876,32 @@ reducao_lineplot <- function(var, banco, simulacao, xlab = 'Tamanho da amostra',
     guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
     geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")
   
-  grafico2 <- ggplot(data = banco2, aes(x = n, y = as.numeric(.data[[var]]), colour = comb_par, group = comb_par)) +
-    geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
-    geom_point(size=2)+
-    xlab(xlab)+
-    ylab(ylab)+
-    ggtitle(titulo)+
-    theme_minimal()+
-    formato +
-    scale_colour_manual(values=paleta)+
-    guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
-    geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")
   
   return(grafico)
 }
 
-
+reducao_lineplot(banco = resultados_bfgs_AA, var = 'eqm_r', 'BFGS')
 
 graficos_reducao <- function(banco, simulacao)
 { 
   variaveis_diag <- c('var_t', 'var_r', 'eqm_t', 'eqm_r','vicio_t','vicio_r', 'erro_t', 'erro_r', 'prob_t', 'prob_r','tam_t', 'tam_r')
 
-    for(i in 1:(length(variaveis_diag)/3))
+
+  banco1  <- banco[banco$simulacao == 'Sem redução',]
+  banco2  <- banco[banco$simulacao == 'Com redução',]
+  
+    for(i in 1:(length(variaveis_diag)/4))
     {
-      plots1 <- comb_par_lineplot(variaveis_diag[i*4 -3], banco, simulacao)
-      plots2 <- comb_par_lineplot(variaveis_diag[i*4 -2], banco, simulacao)
-      plots3 <- comb_par_lineplot(variaveis_diag[i*4 -1], banco, simulacao)
-      plots4 <- comb_par_lineplot(variaveis_diag[i*4   ], banco, simulacao)
+      plots1 <- reducao_lineplot(variaveis_diag[i*4 -3], banco1, simulacao, reducao = F)
+      plots2 <- reducao_lineplot(variaveis_diag[i*4 -3], banco2, simulacao, reducao =T)
+      plots3 <- reducao_lineplot(variaveis_diag[i*4 -2], banco1, simulacao, reducao =F)
+      plots4 <- reducao_lineplot(variaveis_diag[i*4 -2], banco2, simulacao, reducao =T)
+      plots5 <- reducao_lineplot(variaveis_diag[i*4 -1], banco1, simulacao, reducao =F)
+      plots6 <- reducao_lineplot(variaveis_diag[i*4 -1], banco2, simulacao, reducao =T)
+      plots7 <- reducao_lineplot(variaveis_diag[i*4   ], banco1, simulacao, reducao =F)
+      plots8 <- reducao_lineplot(variaveis_diag[i*4   ], banco2, simulacao, reducao =T)
       
-      plot_final    <- ggarrange(plots1, plots2,plots3, plots4, nrow = 4, common.legend = T, legend = 'right')
+      plot_final    <- ggarrange(plots1, plots2, plots3,plots4, plots5, plots6, plots7, plots8, nrow = 4, ncol = 2, common.legend = T, legend = 'right')
       
       arquivo <- paste0('img/red_var/',simulacao, '/', i , '.jpg')
       ggsave(arquivo, plot = plot_final)
@@ -880,5 +909,21 @@ graficos_reducao <- function(banco, simulacao)
   
 }
 library('ggplot2')
+library('ggpubr')
+load('Rdatas/red_var/resultados/resultados_bfgs_AA.Rdata')
 
+ggarrange()
+comparacao_lineplot('var_t', banco = r_ext_newton_AA,arquivo = 'b.jpg')
+# Gráficos ----------------------------------------------------------------
+load('Rdatas/red_var/resultados/resultados_nelder_AA.Rdata')
+load('Rdatas/red_var/resultados/resultados_bfgs_AA.Rdata')
+load('Rdatas/red_var/resultados/resultados_lbfgs_AA.Rdata')
+load('Rdatas/red_var/resultados/resultados_cg_AA.Rdata')
+load('Rdatas/red_var/resultados/resultados_newton_AA.Rdata')
+load('Rdatas/red_var/resultados/resultados_sann_AA.Rdata')
+
+graficos_reducao(resultados_nelder_AA, 'Nelder')
 graficos_reducao(resultados_bfgs_AA, 'BFGS')
+graficos_reducao(resultados_lbfgs_AA, 'L-BFGS-B')
+graficos_reducao(resultados_cg_AA, 'CG')
+graficos_reducao(resultados_newton_AA, 'NR')
