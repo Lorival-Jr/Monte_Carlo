@@ -75,7 +75,35 @@ hist(rgeom(1000, 0.4), freq = F)
 par(mfrow = c(1,1))
 
 
-### Método numérico
+# Gráfico da densidade ----------------------------------------------------
+
+par_comb <- list(c(0.5, 0.1), c(0.5, 0.5), c(0.5, 0.8), # Ele pede 9 combinações de parâmetros
+                 c(  1, 0.1), c(  1, 0.5), c(  1, 0.8),
+                 c(  3, 0.1), c(  3, 0.5), c(  3, 0.8))
+jpeg('densidade.jpg', width = 1080, height = 720, quality = 100)
+curve(dlindley_geom(x, par_comb[[7]]),from = 0, to = 6, ylab = 'Densidade', xlab= 'x', col = '#AECF00', lty = 2, lwd = 2, add=F, main = 'Função Densidade')
+curve(dlindley_geom(x, par_comb[[9]]),from = 0, to = 6,xlab = 'Densidade', col = '#FFD320', lty = 2, lwd = 2, add=T)
+curve(dlindley_geom(x, par_comb[[2]]),from = 0, to = 6,ylab = 'Densidade', xlab= 'x', col = '#FF420E', lty = 2, lwd = 2, add=T)
+curve(dlindley_geom(x, par_comb[[1]]),from = 0, to = 6, ylab = 'Densidade', xlab= 'x', col = '#004586', lty = 2, lwd = 2, add = T)
+
+curve(dlindley_geom(x, par_comb[[3]]),from = -2, to = 6,xlab = 'Densidade', col = '#579D1C', lty = 2, lwd = 2, add=T)
+curve(dlindley_geom(x, par_comb[[4]]),from = -2, to = 6,xlab = 'Densidade', col = '#7E0021', lty = 2, lwd = 2, add=T)
+curve(dlindley_geom(x, par_comb[[5]]),from = -2, to = 6,xlab = 'Densidade', col = '#83CAFF', lty = 2, lwd = 2, add=T)
+curve(dlindley_geom(x, par_comb[[6]]),from = -2, to = 6,xlab = 'Densidade', col = '#FF950E', lty = 2, lwd = 2, add=T)
+curve(dlindley_geom(x, par_comb[[8]]),from = -2, to = 6,xlab = 'Densidade', col = '#DD4477', lty = 2, lwd = 2, add=T)
+
+
+legend(x = "topright",          # Position
+       legend = c('θ=0.5 ρ=0.1', 'θ=0.5 ρ=0.5', 'θ=0.5 ρ=0.8',
+                  'θ=1 ρ=0.1', 'θ=1 ρ=0.5', 'θ=1 ρ=0.8',
+                  'θ=4 ρ=0.1', 'θ=3 ρ=0.5', 'θ=3 ρ=0.8'),  
+       lty = 2,           # Line types
+       col = c('#004586', '#FF420E', '#579D1C', '#7E0021', '#83CAFF', '#FF950E', '#AECF00', '#DD4477', '#FFD320'),           # Line colors
+       lwd = 2)  
+
+
+dev.off()
+### Método numérico -------------------------------------------------------
 
 dlindley_geom <- function(x, theta, p)
 {

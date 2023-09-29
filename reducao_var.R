@@ -758,7 +758,9 @@ ext_newton    <- gera_resultados(simulacoes_newton, 'externa', nome_simulacao = 
 r_ext_newton_AA      <- agrupa_resultados(list(ext_newton, AA_ext_newton))
 resultados_newton_AA <- agrupa_resultados(list(interno_newton, AA_interno_newton))
 save(resultados_newton_AA, file ='Rdatas/red_var/resultados/resultados_newton_AA.Rdata')
-save(r_ext_newton_AA, file ='Rdatas/red_var/resultados/comparacao/resultados_newton_AA.Rdata')
+save(r_ext_newton_AA, file ='Rdatas/red_var/resultados/comparacao/r_ext_newton_AA.Rdata')
+
+
 # Nelder ------------
 load('Rdatas/simulacoes_nelder.Rdata')
 load('Rdatas/red_var/AA_dignostico_nelder.Rdata')
@@ -784,6 +786,7 @@ ext_bfgs      <- gera_resultados(simulacoes_bfgs, 'externa', nome_simulacao = 'S
 r_ext_bfgs_AA      <- agrupa_resultados(list(ext_bfgs, AA_ext_bfgs))
 resultados_bfgs_AA <- agrupa_resultados(list(interno_bfgs, AA_interno_bfgs))
 save(resultados_bfgs_AA, file ='Rdatas/red_var/resultados/resultados_bfgs_AA.Rdata')
+save(r_ext_bfgs_AA, file ='Rdatas/red_var/resultados/comparacao/r_ext_bfgs_AA.Rdata')
 
 # LBFGS ------------
 load('Rdatas/simulacoes_lbfgs.Rdata')
@@ -839,7 +842,7 @@ resultados_bfgs_AA
 
 
 
-reducao_lineplot <- function(var, banco, simulacao, xlab = 'Tamanho da amostra', paleta = NULL, reducao = F)
+reducao_lineplot <- function(var, banco, simulacao, xlab = 'Tamanho da amostra', paleta = NULL, reducao = F, comparacao = 'interna')
 {
   
 
@@ -855,26 +858,49 @@ reducao_lineplot <- function(var, banco, simulacao, xlab = 'Tamanho da amostra',
   if(reducao == F) fim_titulo <- '(S/ Redução)'
   else             fim_titulo <- '(C/ Redução)'
   
-  ifelse(substr(var,nchar(var),nchar(var)) == 'r',
-         titulo <- as.expression(bquote(.(titulo) ~ rho   ~ .(fim_titulo))),
-         titulo <- as.expression(bquote(.(titulo) ~ theta ~ .(fim_titulo))))  
+  if(comparacao == 'interna')
+   { ifelse(substr(var,nchar(var),nchar(var)) == 'r',
+           titulo <- as.expression(bquote(.(titulo) ~ rho   ~ .(fim_titulo))),
+           titulo <- as.expression(bquote(.(titulo) ~ theta ~ .(fim_titulo))))  }
+  
+  else if(comparacao == 'interna')
+  { ifelse(substr(var,nchar(var),nchar(var)) == 'r',
+           titulo <- as.expression(bquote(.(titulo) ~ rho   ~ '')),
+           titulo <- as.expression(bquote(.(titulo) ~ theta ~ '')))  }
+  
   
   if(is.null(paleta)) paleta <- c('#004586', '#FF420E', '#FFD320', '#579D1C', '#7E0021', '#83CAFF', '#FF950E', '#AECF00', '#DD4477')     
   
   if(var == 'prob_t' || var == 'prob_r') intercept <- 0.95
   else intercept <- 0
+  if(comparacao == 'interna'){  
+    grafico <- ggplot(data = banco, aes(x = n, y = as.numeric(.data[[var]]), colour = comb_par, group = comb_par)) +
+      geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+      geom_point(size=2)+
+      xlab(xlab)+
+      ylab('')+
+      ggtitle(titulo)+
+      theme_minimal()+
+      formato +
+      scale_colour_manual(values=paleta)+
+      guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
+      geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")}
   
-  grafico <- ggplot(data = banco, aes(x = n, y = as.numeric(.data[[var]]), colour = comb_par, group = comb_par)) +
-    geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
-    geom_point(size=2)+
-    xlab(xlab)+
-    ylab('')+
-    ggtitle(titulo)+
-    theme_minimal()+
-    formato +
-    scale_colour_manual(values=paleta)+
-    guides(colour = guide_legend(title =  ~~~~~~~~~ theta ~~~~ rho))+
-    geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")
+  else if(comparacao == 'externa'){
+    
+    grafico <- ggplot(data = banco, aes(x = n, y = as.numeric(.data[[var]]), colour = simulacao, group = simulacao)) +
+      geom_line( linewidth =0.9, alpha = 0.7, linetype = 'dashed')+
+      geom_point(size=2)+
+      xlab(xlab)+
+      ylab('')+
+      ggtitle(titulo)+
+      theme_minimal()+
+      formato +
+      scale_colour_manual(values=paleta)+
+      guides(colour = guide_legend(title =  'Simulação'))+
+      geom_hline(yintercept=intercept, col = 'red', linetype = "dotdash")
+    
+  }
   
   
   return(grafico)
